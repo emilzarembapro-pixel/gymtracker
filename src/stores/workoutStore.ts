@@ -10,7 +10,7 @@ interface WorkoutState {
   lastPREvents: NewPREvent[];
   activePlanId: string | null;
 
-  startWorkout: (profileId: ProfileId) => Workout;
+  startWorkout: (profileId: ProfileId, name?: string) => Workout;
   setActivePlan: (planId: string | null) => void;
   selectExercise: (exerciseId: string) => void;
   addSet: (setData: Omit<WorkoutSet, 'id' | 'timestamp' | 'isPR'>) => WorkoutSet;
@@ -39,10 +39,11 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   lastPREvents: [],
   activePlanId: null,
 
-  startWorkout: (profileId) => {
+  startWorkout: (profileId, name) => {
     const workout: Workout = {
       id: uuidv4(),
       profileId,
+      ...(name ? { name } : {}),
       date: todayISO(),
       startTime: Date.now(),
       sets: [],

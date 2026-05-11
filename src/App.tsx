@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useProfileStore } from './stores/profileStore';
 import { useTheme } from './hooks/useTheme';
 import { OnboardingScreen } from './components/onboarding/OnboardingScreen';
+import { SplashScreen } from './components/ui/SplashScreen';
 import { PRToast } from './components/ui/PRToast';
 import { BottomNav } from './components/ui/BottomNav';
 import { WorkoutScreen } from './screens/WorkoutScreen';
@@ -18,6 +19,12 @@ function App() {
   useTheme();
   const onboardingDone = useProfileStore(s => s.onboardingDone);
   const [tab, setTab] = useState<TabId>('workout');
+  const [showSplash, setShowSplash] = useState(() => !sessionStorage.getItem('splash_shown'));
+
+  const handleSplashDone = () => {
+    sessionStorage.setItem('splash_shown', '1');
+    setShowSplash(false);
+  };
 
   if (!onboardingDone) {
     return <OnboardingScreen />;
@@ -25,6 +32,9 @@ function App() {
 
   return (
     <>
+      <AnimatePresence>
+        {showSplash && <SplashScreen onDone={handleSplashDone} />}
+      </AnimatePresence>
       <PRToast />
       <div className="flex flex-col min-h-dvh" style={{ background: 'var(--bg-base)' }}>
         <main

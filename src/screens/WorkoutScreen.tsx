@@ -120,6 +120,8 @@ export function WorkoutScreen() {
   const [curtainActive, setCurtainActive] = useState(false);
   const [completedWorkout, setCompletedWorkout] = useState<Workout | null>(null);
   const [showExerciseDesc, setShowExerciseDesc] = useState(false);
+  const [pendingStart, setPendingStart] = useState<{ kind: 'empty' } | { kind: 'plan'; plan: WorkoutPlan } | null>(null);
+  const [workoutName, setWorkoutName] = useState('');
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -129,21 +131,29 @@ export function WorkoutScreen() {
   const profile = PROFILES[activeProfile];
 
   const handleStartWorkout = () => {
-    if (!prefersReducedMotion) {
-      setCurtainActive(true);
-      window.setTimeout(() => setCurtainActive(false), 650);
-    }
-    setActivePlan(null);
-    startWorkout(activeProfile);
+    setWorkoutName('');
+    setPendingStart({ kind: 'empty' });
   };
 
   const handleStartFromPlan = (plan: WorkoutPlan) => {
+    setWorkoutName(plan.name);
+    setPendingStart({ kind: 'plan', plan });
+  };
+
+  const handleConfirmStart = () => {
+    const name = workoutName.trim() || undefined;
     if (!prefersReducedMotion) {
       setCurtainActive(true);
       window.setTimeout(() => setCurtainActive(false), 650);
     }
-    startWorkout(activeProfile);
-    setActivePlan(plan.id);
+    if (pendingStart?.kind === 'plan') {
+      startWorkout(activeProfile, name);
+      setActivePlan(pendingStart.plan.id);
+    } else {
+      setActivePlan(null);
+      startWorkout(activeProfile, name);
+    }
+    setPendingStart(null);
   };
 
   const handleSavePlan = (name: string, exercises: PlannedExercise[]) => {
@@ -185,7 +195,7 @@ export function WorkoutScreen() {
   // Overall plan progress for the big ring
   const planProgress = activePlan
     ? (() => {
-        const totalTarget = activePlan.exercises.reduce((s, e) => s + e.targetSets, 0);
+        const totalTarget = activePlan.exercises.reduce((s, e) => s + (e.targetSets ?? 0), 0);
         const totalDone = activeWorkout?.sets.filter(s => !s.isWarmup).length ?? 0;
         return totalTarget > 0 ? Math.min(totalDone / totalTarget, 1) : 0;
       })()
@@ -207,6 +217,62 @@ export function WorkoutScreen() {
 
   return (
     <>
+      {/* ── Workout name modal ── */}
+      {pendingStart && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 500,
+          background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+        }} onClick={() => setPendingStart(null)}>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 28, padding: 28, width: '100%', maxWidth: 360,
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 24px 60px -12px rgba(0,0,0,0.8)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 18, fontWeight: 900, color: '#FAFAFA', marginBottom: 6 }}>
+              {pendingStart.kind === 'plan' ? pendingStart.plan.name : 'Nowy trening'}
+            </div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.42)', marginBottom: 20 }}>
+              Nadaj nazwę lub zostaw domyślną
+            </div>
+            <input
+              type="text"
+              placeholder={pendingStart.kind === 'plan' ? pendingStart.plan.name : 'np. Klatka + triceps'}
+              value={workoutName}
+              onChange={e => setWorkoutName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleConfirmStart()}
+              autoFocus
+              style={{
+                width: '100%', padding: '14px 16px', borderRadius: 16, marginBottom: 20,
+                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.14)',
+                color: '#FAFAFA', fontSize: 16, fontWeight: 600, outline: 'none',
+                caretColor: 'var(--accent)', boxSizing: 'border-box',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setPendingStart(null)}
+                style={{
+                  flex: 1, height: 52, borderRadius: 16, border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)',
+                  fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                }}
+              >Anuluj</button>
+              <button
+                onClick={handleConfirmStart}
+                style={{
+                  flex: 2, height: 52, borderRadius: 16, border: 'none',
+                  background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+                  color: '#fff', fontSize: 15, fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 8px 24px -6px rgba(var(--accent-rgb),0.5)',
+                }}
+              >Rozpocznij</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Curtain split entrance ── */}
       <AnimatePresence>
         {curtainActive && (
@@ -377,7 +443,7 @@ export function WorkoutScreen() {
               )}
               <div style={{ flex: 1 }}>
                 <span className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>
-                  {activePlan ? activePlan.name : 'Trening w toku'}
+                  {activePlan ? activePlan.name : (activeWorkout?.name ?? 'Trening w toku')}
                 </span>
                 <div className="flex gap-3 mt-2">
                   <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{exerciseCount} ćwiczeń</span>
@@ -394,7 +460,7 @@ export function WorkoutScreen() {
               {activePlan.exercises.map((pe, i) => {
                 const ex = getById(pe.exerciseId);
                 const doneSets = activeWorkout.sets.filter(s => s.exerciseId === pe.exerciseId && !s.isWarmup).length;
-                const done = doneSets >= pe.targetSets;
+                const done = pe.targetSets != null && doneSets >= pe.targetSets;
                 return (
                   <button
                     key={pe.exerciseId}
@@ -421,7 +487,7 @@ export function WorkoutScreen() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: done ? 'rgba(255,255,255,0.5)' : '#FAFAFA' }}>{ex?.nameEn ?? pe.exerciseId}</div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                        cel: {pe.targetSets}×{pe.targetReps}{pe.targetWeightKg ? ` @ ${pe.targetWeightKg}kg` : ''} · wykonano: {doneSets} serii
+                        {(pe.targetSets != null || pe.targetReps != null) ? `cel: ${pe.targetSets ?? '—'}×${pe.targetReps ?? '—'}${pe.targetWeightKg ? ` @ ${pe.targetWeightKg}kg` : ''} · ` : ''}wykonano: {doneSets} serii
                       </div>
                     </div>
                     <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round"><path d="M9 6l6 6-6 6"/></svg>

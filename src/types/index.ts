@@ -12,8 +12,8 @@ export type TabId = 'workout' | 'history' | 'stats' | 'comparison' | 'settings';
 
 export interface PlannedExercise {
   exerciseId: string;
-  targetSets: number;
-  targetReps: number;
+  targetSets?: number;
+  targetReps?: number;
   targetWeightKg?: number;
 }
 
@@ -50,6 +50,7 @@ export interface WorkoutSet {
 
 export interface Workout {
   id: string;
+  name?: string;
   profileId: ProfileId;
   date: string;
   startTime: number;

@@ -23,13 +23,11 @@ function ExerciseBrowser({
   onAdd,
   addedIds,
 }: {
-  onAdd: (e: Exercise, sets: number) => void;
+  onAdd: (e: Exercise) => void;
   addedIds: Set<string>;
 }) {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<ExerciseCategory | 'all'>('all');
-  const [pickingSets, setPickingSets] = useState<Exercise | null>(null);
-  const [setsCount, setSetsCount] = useState(3);
   const exercises = useExerciseStore(s => s.exercises);
 
   const filtered = exercises
@@ -81,14 +79,13 @@ function ExerciseBrowser({
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {filtered.map(ex => {
           const added = addedIds.has(ex.id);
-          const isPicking = pickingSets?.id === ex.id;
           return (
             <div
               key={ex.id}
               style={{
                 borderRadius: 14,
-                background: added ? 'rgba(var(--accent-rgb),0.1)' : isPicking ? 'rgba(var(--accent-rgb),0.06)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${added || isPicking ? 'rgba(var(--accent-rgb),0.3)' : 'rgba(255,255,255,0.07)'}`,
+                background: added ? 'rgba(var(--accent-rgb),0.1)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${added ? 'rgba(var(--accent-rgb),0.3)' : 'rgba(255,255,255,0.07)'}`,
                 overflow: 'hidden',
               }}
             >
@@ -101,44 +98,15 @@ function ExerciseBrowser({
                   <div style={{ padding: '5px 12px', borderRadius: 10, background: 'rgba(var(--accent-rgb),0.2)', color: 'var(--accent)', fontSize: 12, fontWeight: 700 }}>✓</div>
                 ) : (
                   <button
-                    onClick={() => { setPickingSets(ex); setSetsCount(3); }}
+                    onClick={() => onAdd(ex)}
                     style={{
                       padding: '5px 12px', borderRadius: 10, border: 'none',
-                      background: isPicking ? 'rgba(var(--accent-rgb),0.15)' : 'var(--accent)',
-                      color: isPicking ? 'var(--accent)' : '#fff',
+                      background: 'var(--accent)', color: '#fff',
                       fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
                     }}
                   >+ Dodaj</button>
                 )}
               </div>
-              {isPicking && (
-                <div style={{ padding: '0 12px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Ile serii?</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button
-                      onClick={() => setSetsCount(v => Math.max(1, v - 1))}
-                      style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--surface3)', border: 'none', color: '#FAFAFA', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}
-                    >−</button>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: '#FAFAFA', minWidth: 24, textAlign: 'center' }}>{setsCount}</span>
-                    <button
-                      onClick={() => setSetsCount(v => v + 1)}
-                      style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}
-                    >+</button>
-                  </div>
-                  <button
-                    onClick={() => { onAdd(ex, setsCount); setPickingSets(null); }}
-                    style={{
-                      marginLeft: 'auto', padding: '6px 14px', borderRadius: 10, border: 'none',
-                      background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
-                      color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                    }}
-                  >OK</button>
-                  <button
-                    onClick={() => setPickingSets(null)}
-                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}
-                  >×</button>
-                </div>
-              )}
             </div>
           );
         })}
@@ -155,16 +123,16 @@ export function PlanBuilder({ onClose, onSave }: PlanBuilderProps) {
 
   const addedIds = new Set(exercises.map(e => e.exerciseId));
 
-  const handleAdd = (ex: Exercise, sets: number) => {
+  const handleAdd = (ex: Exercise) => {
     if (addedIds.has(ex.id)) return;
-    setExercises(prev => [...prev, { exerciseId: ex.id, targetSets: sets, targetReps: 10 }]);
+    setExercises(prev => [...prev, { exerciseId: ex.id }]);
   };
 
   const handleRemove = (id: string) => {
     setExercises(prev => prev.filter(e => e.exerciseId !== id));
   };
 
-  const updateField = (id: string, field: 'targetSets' | 'targetReps' | 'targetWeightKg', value: number) => {
+  const updateField = (id: string, field: 'targetSets' | 'targetReps' | 'targetWeightKg', value: number | undefined) => {
     setExercises(prev => prev.map(e => e.exerciseId === id ? { ...e, [field]: value } : e));
   };
 
@@ -255,8 +223,13 @@ export function PlanBuilder({ onClose, onSave }: PlanBuilderProps) {
                                 type="number"
                                 inputMode="numeric"
                                 min={1}
-                                value={pe[field]}
-                                onChange={e => updateField(pe.exerciseId, field, Math.max(1, parseInt(e.target.value) || 1))}
+                                placeholder="—"
+                                value={pe[field] ?? ''}
+                                onChange={e => {
+                                  const raw = e.target.value;
+                                  const v = parseInt(raw, 10);
+                                  updateField(pe.exerciseId, field, raw === '' ? undefined : (isNaN(v) ? undefined : Math.max(1, v)));
+                                }}
                                 style={{
                                   width: '100%', padding: '8px 10px', borderRadius: 10,
                                   background: 'rgba(255,255,255,0.07)',

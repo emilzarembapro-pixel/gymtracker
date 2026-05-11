@@ -76,10 +76,6 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
   const repsMinusLongPress = useLongPress(() => incrementReps(-4));
 
   const handleSave = () => {
-    if (weightKg <= 0 && !isWarmup) {
-      setError('Wpisz ciężar większy niż 0');
-      return;
-    }
     if (reps <= 0) {
       setError('Wpisz liczbę powtórzeń');
       return;

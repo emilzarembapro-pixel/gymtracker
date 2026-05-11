@@ -50,7 +50,7 @@ Sety pobite w PR mają `WorkoutSet.isPR === true` (markSetAsPR mutuje workoutSto
 
 ### System kolorów i motywy
 
-Aplikacja jest **wyłącznie ciemna** — tryby Jasny i Automatyczny usunięte. `useTheme()` w `App.tsx` ustawia CSS custom properties na `:root` przy każdej zmianie profilu:
+Aplikacja jest **wyłącznie ciemna** — sekcja Wygląd usunięta z SettingsScreen, `ThemeToggle` istnieje w kodzie ale nie jest już używany. `useTheme()` w `App.tsx` ustawia CSS custom properties na `:root` przy każdej zmianie profilu:
 - `--accent`, `--accent-muted`, `--accent-rgb`, `--accent-shadow`
 - `--accent2` — kolor dla gradientów (Emil → `#6366F1`, Nikola → `#FB7185`)
 - `--soft` / `--soft2` — rozcieńczone tła akcentowe (np. `rgba(59,130,246,0.14)`)
@@ -78,10 +78,19 @@ Trzy widoki renderowane warunkowo (nie early-return) wewnątrz wspólnego `<>`:
 ```
 brak activeWorkout                       →  ekran startowy (gradient hero card + plany)
 activeWorkout + brak currentExerciseId   →  ExercisePicker lub lista ćwiczeń z planu
-activeWorkout + currentExerciseId        →  SetLogger + SetList + RestTimerBanner
+activeWorkout + currentExerciseId        →  ExerciseInfo + SetLogger + SetList + NextBtn
 ```
 
 `selectExercise('')` cofa do pickera (pusty string → `!currentExerciseId === true`).
+
+W widoku `activeWorkout + currentExerciseId` kolejność elementów:
+1. Nagłówek nawigacyjny (← Zmień ćwiczenie)
+2. `<ProfileSwitch compact />`
+3. **ExerciseInfo card** — rozwijany kafelek z nazwą ćwiczenia (EN + PL) i opisem; stan `showExerciseDesc` lokalny w WorkoutScreen, resetowany przez `handleNextExercise`
+4. `<RestTimerRing>` (tylko gdy `isRunning`)
+5. `<SetLogger>` + `<SetList>`
+6. **Przycisk "Następne ćwiczenie"** — `handleNextExercise` przechodzi do kolejnego ćwiczenia w planie (po indeksie) lub wywołuje `selectExercise('')` gdy brak planu / koniec listy
+7. Przyciski Zakończ / Anuluj trening
 
 **Ważne**: `handleStartFromPlan` wywołuje `startWorkout(activeProfile)` **przed** `setActivePlan(plan.id)` — odwrotna kolejność powoduje wyzerowanie `activePlanId` przez `startWorkout` (który resetuje ten state).
 
@@ -99,11 +108,14 @@ Nad wszystkimi widokami renderują się dwa fixed-overlaye:
 
 **SetList** (`src/components/workout/SetList.tsx`):
 - Serie podzielone na dwie sekcje: **Rozgrzewka** (etykiety R1, R2…) i **Serie robocze** (S1, S2…).
-- Każda seria ma dwa przyciski: ołówek (edycja) i kosz (usunięcie), oba otwierają odpowiedni modal.
+- Kliknięcie gdziekolwiek w wiersz serii otwiera modal edycji (KG + POWT.). Przycisk kosza ma `stopPropagation` — nie triggeruje edycji.
+- Modal edycji: inputy muszą mieć `width: '100%'`, `boxSizing: 'border-box'` oraz `minWidth: 0` na labelce kolumny siatki — bez tego Safari/mobile nie ogranicza szerokości inputu `type="number"` i POWT. wylatuje poza ekran.
 
 ### PlanBuilder
 
 `ExerciseBrowser` wewnątrz `PlanBuilder` ma filtry kategorii (identyczne kategorie jak `ExercisePicker`). Po kliknięciu "+ Dodaj" pojawia się inline mini-formularz do ustawienia liczby serii — dopiero po zatwierdzeniu ćwiczenie trafia do planu.
+
+Lista ćwiczeń w `ExerciseBrowser` **nie ma** ograniczenia `maxHeight` — scrolluje razem z resztą zawartości przez rodzica (`flex: 1, overflowY: auto`). Nie przywracaj `maxHeight: 260` — powoduje niewidoczność ćwiczeń na iOS z powodu zagnieżdżonego overflow.
 
 ### Historia — miesięczny kalendarz
 
@@ -134,10 +146,12 @@ Używany w:
 
 ### Ćwiczenia
 
-Lista ćwiczeń w `src/constants/exercises.ts` (id = slug, np. `'martwy-ciag'`). Własne ćwiczenia dołączane w `exerciseStore` przy inicjalizacji z `gym_custom_exercises`. Każde ćwiczenie ma `name` (PL) i `nameEn` (EN) — wyszukiwarka przeszukuje obie.
+Lista ćwiczeń w `src/constants/exercises.ts` (id = slug, np. `'martwy-ciag'`). Własne ćwiczenia dołączane w `exerciseStore` przy inicjalizacji z `gym_custom_exercises`. Każde ćwiczenie ma `name` (PL) i `nameEn` (EN) — wyszukiwarka przeszukuje obie. Pole `description` jest opcjonalne — używane w ExercisePicker (przycisk info ⓘ) i w ExerciseInfo card w WorkoutScreen.
 
 Kategorie: `klatka | plecy | nogi | barki | biceps | triceps | brzuch | cardio`
 Equipment: `sztanga | hantle | maszyna | wolny`
+
+Dodając nowe ćwiczenia: id musi być unikalnym slugiem (kebab-case), `isCustom: false`, `description` po polsku (instrukcja wykonania).
 
 ### Timer odpoczynku
 
