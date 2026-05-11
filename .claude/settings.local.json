@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5174)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(curl -s http://localhost:5173 -o /dev/null -w \"%{http_code}\")",
+      "Bash(curl -s http://localhost:5174 -o /dev/null -w \"%{http_code}\")",
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(cp \"/Users/emil/.claude/projects/-Users-emil-test-claude-code-gym-tracker/71c1d5f8-f7df-4c5a-a375-a13022a22015/tool-results/webfetch-1778447577975-i4w5ls.bin\" /tmp/gymtracker_design.gz)",
+      "Bash(gunzip -f /tmp/gymtracker_design.gz)",
+      "Read(//tmp/**)",
+      "Bash(tar -tf /tmp/gymtracker_design)",
+      "Bash(tar -xf /tmp/gymtracker_design -C /tmp/)",
+      "Bash(npx vite *)",
+      "Bash(identify /Users/emil/Downloads/IMG_9119.HEIC /Users/emil/Downloads/IMG_0971.HEIC)",
+      "Bash(sips -s format jpeg /Users/emil/Downloads/IMG_9119.HEIC --out /tmp/IMG_9119.jpg)",
+      "Bash(sips -s format jpeg /Users/emil/Downloads/IMG_0971.HEIC --out /tmp/IMG_0971.jpg)",
+      "Bash(sips -s format jpeg -Z 400 /Users/emil/Downloads/IMG_0849.JPG --out /Users/emil/test-claude-code/gym-tracker/public/avatars/emil.jpg)",
+      "Bash(sips -s format jpeg -Z 400 /tmp/IMG_9119.jpg --out /Users/emil/test-claude-code/gym-tracker/public/avatars/nikola.jpg)",
+      "Bash(sips -s format jpeg -Z 400 /tmp/IMG_0971.jpg --out /Users/emil/test-claude-code/gym-tracker/public/avatars/both.jpg)",
+      "Bash(sips *)",
+      "Bash(npx tsc *)",
+      "Bash(git -C /Users/emil/test-claude-code/gym-tracker status)",
+      "Bash(git init *)",
+      "Bash(git add *)"
+    ]
+  }
+}
