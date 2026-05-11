@@ -17,7 +17,7 @@ Brak testów jednostkowych — logika domenowa w `src/utils/calculations.ts` jes
 
 ### Nawigacja
 
-Brak react-router. Aktywna zakładka to `TabId` (`'workout' | 'history' | 'stats' | 'comparison' | 'settings'`) trzymany w `useState` w `App.tsx`. Ekrany renderowane warunkowo pod `AnimatePresence mode="wait"` z `key={tab}`, dzięki czemu zmiana zakładki uruchamia fade+slide (18ms, ease-out). Onboarding sprawdzany przed renderowaniem całego UI.
+Brak react-router. Aktywna zakładka to `TabId` (`'workout' | 'history' | 'stats' | 'comparison' | 'settings'`) trzymany w `useState` w `App.tsx`. Ekrany renderowane warunkowo pod `AnimatePresence mode="wait"` z `key={tab}`, dzięki czemu zmiana zakładki uruchamia fade+slide. Onboarding (wybór profilu) sprawdzany przed renderowaniem całego UI — jest jednym ekranem bez kroków "jak to działa".
 
 ### Storage
 
@@ -50,7 +50,7 @@ Sety pobite w PR mają `WorkoutSet.isPR === true` (markSetAsPR mutuje workoutSto
 
 ### System kolorów i motywy
 
-`useTheme()` w `App.tsx` ustawia CSS custom properties na `:root` przy każdej zmianie profilu:
+Aplikacja jest **wyłącznie ciemna** — tryby Jasny i Automatyczny usunięte. `useTheme()` w `App.tsx` ustawia CSS custom properties na `:root` przy każdej zmianie profilu:
 - `--accent`, `--accent-muted`, `--accent-rgb`, `--accent-shadow`
 - `--accent2` — kolor dla gradientów (Emil → `#6366F1`, Nikola → `#FB7185`)
 - `--soft` / `--soft2` — rozcieńczone tła akcentowe (np. `rgba(59,130,246,0.14)`)
@@ -77,15 +77,37 @@ Trzy widoki renderowane warunkowo (nie early-return) wewnątrz wspólnego `<>`:
 
 ```
 brak activeWorkout                       →  ekran startowy (gradient hero card + plany)
-activeWorkout + brak currentExerciseId   →  ExercisePicker + podsumowanie w toku
+activeWorkout + brak currentExerciseId   →  ExercisePicker lub lista ćwiczeń z planu
 activeWorkout + currentExerciseId        →  SetLogger + SetList + RestTimerBanner
 ```
 
 `selectExercise('')` cofa do pickera (pusty string → `!currentExerciseId === true`).
 
+**Ważne**: `handleStartFromPlan` wywołuje `startWorkout(activeProfile)` **przed** `setActivePlan(plan.id)` — odwrotna kolejność powoduje wyzerowanie `activePlanId` przez `startWorkout` (który resetuje ten state).
+
+Przycisk "Zakończ trening" działa **in-place**: po kliknięciu przycisk zastępuje się modalem potwierdzenia (nie pojawia się pod spodem).
+
 Nad wszystkimi widokami renderują się dwa fixed-overlaye:
-- **Curtain** (`position: fixed, z-index: 9999`) — dwie połowy kurtyny rozjeżdżające się w górę/dół przy starcie treningu (600ms ease-in-out). Triggerowany przez `curtainActive` state, wyłączony gdy `useReducedMotion()`.
-- **WorkoutCompletionOverlay** (`z-index: 10000`) — FIFA-style podsumowanie po zakończeniu treningu (tapnięcie zamyka).
+- **Curtain** (`position: fixed, z-index: 9999`) — dwie połowy kurtyny rozjeżdżające się w górę/dół przy starcie treningu (600ms ease-in-out). Wyłączony gdy `useReducedMotion()`.
+- **WorkoutCompletionOverlay** (`z-index: 10000`) — FIFA-style podsumowanie po zakończeniu treningu.
+
+### SetLogger i SetList
+
+**SetLogger** (`src/components/workout/SetLogger.tsx`):
+- Kafelek KG i POWT. mają identyczny design (gradient background, accent border). Przycisk `+` w obu kafelkach jest `var(--accent)`.
+- Kółka serii nad loggerem pokazują `S1`, `S2`… dla serii roboczych. Gdy toggle rozgrzewkowy jest aktywny, bieżące kółko pokazuje `R` zamiast `S`. Ukończone kółka (zielone) są klikalne i otwierają modal edycji tej serii.
+
+**SetList** (`src/components/workout/SetList.tsx`):
+- Serie podzielone na dwie sekcje: **Rozgrzewka** (etykiety R1, R2…) i **Serie robocze** (S1, S2…).
+- Każda seria ma dwa przyciski: ołówek (edycja) i kosz (usunięcie), oba otwierają odpowiedni modal.
+
+### PlanBuilder
+
+`ExerciseBrowser` wewnątrz `PlanBuilder` ma filtry kategorii (identyczne kategorie jak `ExercisePicker`). Po kliknięciu "+ Dodaj" pojawia się inline mini-formularz do ustawienia liczby serii — dopiero po zatwierdzeniu ćwiczenie trafia do planu.
+
+### Historia — miesięczny kalendarz
+
+`HistoryScreen` pokazuje miesięczny kalendarz z nawigacją `‹ ›` między miesiącami. Każdy dzień z treningiem ma kolorową kropkę (niebieski = Emil, różowy = Nikola). Kliknięcie dnia filtruje listę treningów poniżej do wybranego dnia. Pod kalendarzem wyświetlane są treningi z aktualnego miesiąca (lub zaznaczonego dnia).
 
 ### Animacje (Framer Motion)
 
@@ -112,7 +134,10 @@ Używany w:
 
 ### Ćwiczenia
 
-Domyślna lista 34 ćwiczeń w `src/constants/exercises.ts` (id = slug, np. `'martwy-ciag'`). Własne ćwiczenia dołączane w `exerciseStore` przy inicjalizacji z `gym_custom_exercises`. Każde ćwiczenie ma `name` (PL) i `nameEn` (EN) — wyszukiwarka przeszukuje obie.
+Lista ćwiczeń w `src/constants/exercises.ts` (id = slug, np. `'martwy-ciag'`). Własne ćwiczenia dołączane w `exerciseStore` przy inicjalizacji z `gym_custom_exercises`. Każde ćwiczenie ma `name` (PL) i `nameEn` (EN) — wyszukiwarka przeszukuje obie.
+
+Kategorie: `klatka | plecy | nogi | barki | biceps | triceps | brzuch | cardio`
+Equipment: `sztanga | hantle | maszyna | wolny`
 
 ### Timer odpoczynku
 

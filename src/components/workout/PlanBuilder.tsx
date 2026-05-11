@@ -1,20 +1,42 @@
 import { useState } from 'react';
 import { useExerciseStore } from '../../stores/exerciseStore';
-import type { Exercise, PlannedExercise } from '../../types';
+import type { Exercise, ExerciseCategory, PlannedExercise } from '../../types';
+
+const CATEGORIES: Array<{ id: ExerciseCategory | 'all'; label: string }> = [
+  { id: 'all', label: 'Wszystkie' },
+  { id: 'klatka', label: 'Klatka' },
+  { id: 'plecy', label: 'Plecy' },
+  { id: 'nogi', label: 'Nogi' },
+  { id: 'barki', label: 'Barki' },
+  { id: 'biceps', label: 'Biceps' },
+  { id: 'triceps', label: 'Triceps' },
+  { id: 'brzuch', label: 'Brzuch' },
+  { id: 'cardio', label: 'Cardio' },
+];
 
 interface PlanBuilderProps {
   onClose: () => void;
   onSave: (name: string, exercises: PlannedExercise[]) => void;
 }
 
-function ExerciseBrowser({ onAdd, addedIds }: { onAdd: (e: Exercise) => void; addedIds: Set<string> }) {
+function ExerciseBrowser({
+  onAdd,
+  addedIds,
+}: {
+  onAdd: (e: Exercise, sets: number) => void;
+  addedIds: Set<string>;
+}) {
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<ExerciseCategory | 'all'>('all');
+  const [pickingSets, setPickingSets] = useState<Exercise | null>(null);
+  const [setsCount, setSetsCount] = useState(3);
   const exercises = useExerciseStore(s => s.exercises);
 
   const filtered = exercises
     .filter(e => {
+      const matchCat = category === 'all' || e.category === category;
       const q = query.toLowerCase();
-      return !q || e.nameEn.toLowerCase().includes(q) || e.name.toLowerCase().includes(q);
+      return matchCat && (!q || e.nameEn.toLowerCase().includes(q) || e.name.toLowerCase().includes(q));
     })
     .sort((a, b) => a.nameEn.localeCompare(b.nameEn, 'en'));
 
@@ -33,34 +55,90 @@ function ExerciseBrowser({ onAdd, addedIds }: { onAdd: (e: Exercise) => void; ad
           caretColor: 'var(--accent)',
         }}
       />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
+
+      {/* Category chips */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+        {CATEGORIES.map(cat => {
+          const active = category === cat.id;
+          return (
+            <button
+              key={cat.id}
+              onClick={() => setCategory(cat.id as ExerciseCategory | 'all')}
+              style={{
+                flexShrink: 0, padding: '5px 12px', borderRadius: 999,
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                background: active ? 'linear-gradient(135deg, var(--accent), var(--accent-muted))' : 'rgba(255,255,255,0.05)',
+                border: active ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                color: active ? '#fff' : 'rgba(255,255,255,0.45)',
+                transition: 'background 0.2s ease',
+              }}
+            >{cat.label}</button>
+          );
+        })}
+      </div>
+
+      {/* Exercise list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {filtered.map(ex => {
           const added = addedIds.has(ex.id);
+          const isPicking = pickingSets?.id === ex.id;
           return (
             <div
               key={ex.id}
               style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '10px 12px', borderRadius: 14,
-                background: added ? 'rgba(var(--accent-rgb),0.1)' : 'rgba(255,255,255,0.04)',
-                border: `1px solid ${added ? 'rgba(var(--accent-rgb),0.3)' : 'rgba(255,255,255,0.07)'}`,
+                borderRadius: 14,
+                background: added ? 'rgba(var(--accent-rgb),0.1)' : isPicking ? 'rgba(var(--accent-rgb),0.06)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${added || isPicking ? 'rgba(var(--accent-rgb),0.3)' : 'rgba(255,255,255,0.07)'}`,
+                overflow: 'hidden',
               }}
             >
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#FAFAFA' }}>{ex.nameEn}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>{ex.name}</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#FAFAFA' }}>{ex.nameEn}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.38)', marginTop: 1 }}>{ex.name}</div>
+                </div>
+                {added ? (
+                  <div style={{ padding: '5px 12px', borderRadius: 10, background: 'rgba(var(--accent-rgb),0.2)', color: 'var(--accent)', fontSize: 12, fontWeight: 700 }}>✓</div>
+                ) : (
+                  <button
+                    onClick={() => { setPickingSets(ex); setSetsCount(3); }}
+                    style={{
+                      padding: '5px 12px', borderRadius: 10, border: 'none',
+                      background: isPicking ? 'rgba(var(--accent-rgb),0.15)' : 'var(--accent)',
+                      color: isPicking ? 'var(--accent)' : '#fff',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                    }}
+                  >+ Dodaj</button>
+                )}
               </div>
-              <button
-                onClick={() => onAdd(ex)}
-                disabled={added}
-                style={{
-                  padding: '5px 12px', borderRadius: 10, border: 'none',
-                  background: added ? 'rgba(var(--accent-rgb),0.2)' : 'var(--accent)',
-                  color: added ? 'var(--accent)' : '#fff',
-                  fontSize: 12, fontWeight: 700, cursor: added ? 'default' : 'pointer',
-                  flexShrink: 0,
-                }}
-              >{added ? '✓' : '+ Dodaj'}</button>
+              {isPicking && (
+                <div style={{ padding: '0 12px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: 600 }}>Ile serii?</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                      onClick={() => setSetsCount(v => Math.max(1, v - 1))}
+                      style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--surface3)', border: 'none', color: '#FAFAFA', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}
+                    >−</button>
+                    <span style={{ fontSize: 20, fontWeight: 800, color: '#FAFAFA', minWidth: 24, textAlign: 'center' }}>{setsCount}</span>
+                    <button
+                      onClick={() => setSetsCount(v => v + 1)}
+                      style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--accent)', border: 'none', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer' }}
+                    >+</button>
+                  </div>
+                  <button
+                    onClick={() => { onAdd(ex, setsCount); setPickingSets(null); }}
+                    style={{
+                      marginLeft: 'auto', padding: '6px 14px', borderRadius: 10, border: 'none',
+                      background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+                      color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    }}
+                  >OK</button>
+                  <button
+                    onClick={() => setPickingSets(null)}
+                    style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.35)', fontSize: 18, cursor: 'pointer', lineHeight: 1 }}
+                  >×</button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -77,9 +155,9 @@ export function PlanBuilder({ onClose, onSave }: PlanBuilderProps) {
 
   const addedIds = new Set(exercises.map(e => e.exerciseId));
 
-  const handleAdd = (ex: Exercise) => {
+  const handleAdd = (ex: Exercise, sets: number) => {
     if (addedIds.has(ex.id)) return;
-    setExercises(prev => [...prev, { exerciseId: ex.id, targetSets: 3, targetReps: 10 }]);
+    setExercises(prev => [...prev, { exerciseId: ex.id, targetSets: sets, targetReps: 10 }]);
   };
 
   const handleRemove = (id: string) => {

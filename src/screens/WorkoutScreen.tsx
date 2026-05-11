@@ -119,6 +119,7 @@ export function WorkoutScreen() {
   const [showPicker, setShowPicker] = useState(false);
   const [curtainActive, setCurtainActive] = useState(false);
   const [completedWorkout, setCompletedWorkout] = useState<Workout | null>(null);
+  const [showExerciseDesc, setShowExerciseDesc] = useState(false);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -141,8 +142,8 @@ export function WorkoutScreen() {
       setCurtainActive(true);
       window.setTimeout(() => setCurtainActive(false), 650);
     }
-    setActivePlan(plan.id);
     startWorkout(activeProfile);
+    setActivePlan(plan.id);
   };
 
   const handleSavePlan = (name: string, exercises: PlannedExercise[]) => {
@@ -192,6 +193,17 @@ export function WorkoutScreen() {
 
   // targetSets for the current exercise in SetLogger
   const currentExercisePlan = activePlan?.exercises.find(e => e.exerciseId === currentExerciseId);
+
+  const handleNextExercise = useCallback(() => {
+    setShowExerciseDesc(false);
+    if (activePlan) {
+      const currentIdx = activePlan.exercises.findIndex(e => e.exerciseId === currentExerciseId);
+      const next = activePlan.exercises[currentIdx + 1];
+      selectExercise(next ? next.exerciseId : '');
+    } else {
+      selectExercise('');
+    }
+  }, [activePlan, currentExerciseId, selectExercise]);
 
   return (
     <>
@@ -432,28 +444,31 @@ export function WorkoutScreen() {
           )}
 
           <div className="space-y-2 pt-4">
-            <Button variant="primary" size="lg" fullWidth onClick={() => setConfirmFinish(true)}>Zakończ trening</Button>
-            <Button variant="ghost" size="sm" fullWidth onClick={() => setConfirmCancel(true)}>Anuluj trening</Button>
+            {confirmFinish ? (
+              <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(var(--accent-rgb), 0.3)' }}>
+                <p className="text-white font-semibold">Zakończyć trening?</p>
+                <div className="flex gap-2">
+                  <Button variant="primary" fullWidth onClick={handleFinishWorkout}>Tak, zakończ</Button>
+                  <Button variant="ghost" fullWidth onClick={() => setConfirmFinish(false)}>Nie</Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="primary" size="lg" fullWidth onClick={() => setConfirmFinish(true)}>Zakończ trening</Button>
+            )}
+            {!confirmFinish && (
+              confirmCancel ? (
+                <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(220,38,38,0.4)', background: 'rgba(220,38,38,0.08)' }}>
+                  <p className="text-red-300 font-semibold">Anulować trening? Dane zostaną utracone.</p>
+                  <div className="flex gap-2">
+                    <Button variant="danger" fullWidth onClick={handleCancelWorkout}>Tak, anuluj</Button>
+                    <Button variant="ghost" fullWidth onClick={() => setConfirmCancel(false)}>Nie</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" fullWidth onClick={() => setConfirmCancel(true)}>Anuluj trening</Button>
+              )
+            )}
           </div>
-
-          {confirmFinish && (
-            <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(var(--accent-rgb), 0.3)' }}>
-              <p className="text-white font-semibold">Zakończyć trening?</p>
-              <div className="flex gap-2">
-                <Button variant="primary" fullWidth onClick={handleFinishWorkout}>Tak, zakończ</Button>
-                <Button variant="ghost" fullWidth onClick={() => setConfirmFinish(false)}>Nie</Button>
-              </div>
-            </div>
-          )}
-          {confirmCancel && (
-            <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(220,38,38,0.4)', background: 'rgba(220,38,38,0.08)' }}>
-              <p className="text-red-300 font-semibold">Anulować trening? Dane zostaną utracone.</p>
-              <div className="flex gap-2">
-                <Button variant="danger" fullWidth onClick={handleCancelWorkout}>Tak, anuluj</Button>
-                <Button variant="ghost" fullWidth onClick={() => setConfirmCancel(false)}>Nie</Button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -490,6 +505,41 @@ export function WorkoutScreen() {
 
           <ProfileSwitch compact />
 
+          {/* Exercise name + info */}
+          {(() => {
+            const ex = getById(currentExerciseId);
+            if (!ex) return null;
+            return (
+              <div style={{ borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <button
+                  onClick={() => setShowExerciseDesc(v => !v)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: '#FAFAFA' }}>{ex.nameEn}</div>
+                    <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', marginTop: 2 }}>{ex.name}</div>
+                  </div>
+                  <svg
+                    viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round"
+                    style={{ transform: showExerciseDesc ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', flexShrink: 0 }}
+                  >
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+                {showExerciseDesc && ex.description && (
+                  <div style={{ padding: '0 16px 14px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <p style={{ fontSize: 12.5, lineHeight: 1.65, color: 'rgba(255,255,255,0.52)', paddingTop: 10 }}>
+                      {ex.description}
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {isRunning && (
             <RestTimerRing
               secondsLeft={secondsLeft}
@@ -508,21 +558,37 @@ export function WorkoutScreen() {
           />
           <SetList exerciseId={currentExerciseId} sets={activeWorkout.sets} />
 
-          <div className="pt-2 space-y-2">
-            <Button variant="primary" size="lg" fullWidth onClick={() => setConfirmFinish(true)}>
-              Zakończ trening
-            </Button>
-          </div>
+          {/* Next exercise button */}
+          <button
+            onClick={handleNextExercise}
+            style={{
+              width: '100%', height: 52, borderRadius: 16, border: '1px solid rgba(var(--accent-rgb),0.3)',
+              background: 'rgba(var(--accent-rgb),0.08)',
+              color: 'var(--accent)', fontSize: 15, fontWeight: 700,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            <span>Następne ćwiczenie</span>
+            <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M9 6l6 6-6 6"/>
+            </svg>
+          </button>
 
-          {confirmFinish && (
-            <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(var(--accent-rgb), 0.3)' }}>
-              <p className="text-white font-semibold">Zakończyć trening?</p>
-              <div className="flex gap-2">
-                <Button variant="primary" fullWidth onClick={handleFinishWorkout}>Tak, zakończ</Button>
-                <Button variant="ghost" fullWidth onClick={() => setConfirmFinish(false)}>Nie</Button>
+          <div className="pt-2 space-y-2">
+            {confirmFinish ? (
+              <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(var(--accent-rgb), 0.3)' }}>
+                <p className="text-white font-semibold">Zakończyć trening?</p>
+                <div className="flex gap-2">
+                  <Button variant="primary" fullWidth onClick={handleFinishWorkout}>Tak, zakończ</Button>
+                  <Button variant="ghost" fullWidth onClick={() => setConfirmFinish(false)}>Nie</Button>
+                </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <Button variant="primary" size="lg" fullWidth onClick={() => setConfirmFinish(true)}>
+                Zakończ trening
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </>

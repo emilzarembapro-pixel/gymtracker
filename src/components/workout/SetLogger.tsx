@@ -8,6 +8,7 @@ import { useLongPress } from '../../hooks/useLongPress';
 import { LastWorkoutPanel } from './LastWorkoutPanel';
 import { ProgressRing } from '../ui/ProgressRing';
 import { HAPTIC } from '../../utils/haptics';
+import type { WorkoutSet } from '../../types';
 
 interface SetLoggerProps {
   exerciseId: string;
@@ -29,6 +30,7 @@ function FlameIcon() {
 export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg, targetSets }: SetLoggerProps) {
   const activeWorkout = useWorkoutStore(s => s.activeWorkout);
   const addSet = useWorkoutStore(s => s.addSet);
+  const updateSet = useWorkoutStore(s => s.updateSet);
   const exercises = useExerciseStore(s => s.exercises);
   const activeProfile = useProfileStore(s => s.activeProfile);
   const timerEnabled = useSettingsStore(s => s.timerEnabled[activeProfile]);
@@ -38,7 +40,8 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
   const exercise = exercises.find(e => e.id === exerciseId);
 
   const setsForExercise = activeWorkout?.sets.filter(s => s.exerciseId === exerciseId) ?? [];
-  const workingSetsCount = setsForExercise.filter(s => !s.isWarmup).length;
+  const workingSets = setsForExercise.filter(s => !s.isWarmup);
+  const workingSetsCount = workingSets.length;
 
   const [weightKg, setWeightKg] = useState(20);
   const [weightStr, setWeightStr] = useState('20');
@@ -46,6 +49,9 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
   const [repsStr, setRepsStr] = useState('10');
   const [isWarmup, setIsWarmup] = useState(false);
   const [error, setError] = useState('');
+  const [editSet, setEditSet] = useState<WorkoutSet | null>(null);
+  const [editWeight, setEditWeight] = useState('');
+  const [editReps, setEditReps] = useState('');
 
   const incrementWeight = useCallback((amount: number) => {
     setWeightKg(w => {
@@ -124,13 +130,16 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
         {Array.from({ length: dotsToShow }).map((_, i) => {
           const isDone = i < workingSetsCount;
           const isCurrent = i === workingSetsCount;
+          const doneSet = isDone ? workingSets[i] : null;
           return (
             <div
               key={i}
+              onClick={doneSet ? () => { setEditSet(doneSet); setEditWeight(String(doneSet.weightKg)); setEditReps(String(doneSet.reps)); } : undefined}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 32, height: 28, borderRadius: 10,
                 fontSize: 11, fontWeight: 700,
+                cursor: doneSet ? 'pointer' : 'default',
                 ...(isDone ? {
                   background: 'rgba(34,197,94,0.15)',
                   border: '1px solid rgba(34,197,94,0.35)',
@@ -151,7 +160,7 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
                   <path d="M5 12l5 5 9-9"/>
                 </svg>
               ) : (
-                `S${i + 1}`
+                `${isCurrent && isWarmup ? 'R' : 'S'}${i + 1}`
               )}
             </div>
           );
@@ -230,12 +239,13 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
         {/* POWT tile */}
         <div style={{
           borderRadius: 22, padding: 14,
-          background: 'var(--surface)',
-          border: '1px solid rgba(255,255,255,0.07)',
+          background: 'linear-gradient(180deg, var(--soft) 0%, var(--surface) 100%)',
+          border: '1px solid rgba(var(--accent-rgb), 0.25)',
+          boxShadow: '0 0 0 4px var(--soft)',
           display: 'flex', flexDirection: 'column',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.62)' }}>POWT.</span>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)' }}>POWT.</span>
             <span style={{ fontSize: 10, color: targetReps ? 'var(--accent)' : 'rgba(255,255,255,0.42)' }}>
               {targetReps ? `cel: ${targetReps}` : 'cel: —'}
             </span>
@@ -282,8 +292,8 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
               {...repsLongPress}
               style={{
                 flex: 1, height: 52, borderRadius: 16,
-                background: 'var(--surface3)', border: 'none',
-                color: '#FAFAFA', fontSize: 24, fontWeight: 700,
+                background: 'var(--accent)', border: 'none',
+                color: '#fff', fontSize: 24, fontWeight: 700,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >+</button>
@@ -367,6 +377,77 @@ export function SetLogger({ exerciseId, onTimerStart, targetReps, targetWeightKg
           <path d="M5 12l5 5 9-9"/>
         </svg>
       </button>
+
+      {/* Edit set modal */}
+      {editSet && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 200,
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+        }} onClick={() => setEditSet(null)}>
+          <div style={{
+            background: 'var(--surface)', borderRadius: 24, padding: 24, width: '100%', maxWidth: 340,
+            border: '1px solid rgba(255,255,255,0.1)',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#FAFAFA', marginBottom: 16 }}>Edytuj serię</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)' }}>KG</span>
+                <input
+                  type="number" inputMode="decimal"
+                  value={editWeight}
+                  onChange={e => setEditWeight(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center',
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#FAFAFA', fontSize: 22, fontWeight: 800, outline: 'none',
+                    caretColor: 'var(--accent)', boxSizing: 'border-box',
+                  }}
+                />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)' }}>POWT.</span>
+                <input
+                  type="number" inputMode="numeric"
+                  value={editReps}
+                  onChange={e => setEditReps(e.target.value)}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center',
+                    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                    color: '#FAFAFA', fontSize: 22, fontWeight: 800, outline: 'none',
+                    caretColor: 'var(--accent)', boxSizing: 'border-box',
+                  }}
+                />
+              </label>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setEditSet(null)}
+                style={{
+                  flex: 1, height: 48, borderRadius: 14, border: '1px solid rgba(255,255,255,0.1)',
+                  background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.6)',
+                  fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                }}
+              >Anuluj</button>
+              <button
+                onClick={() => {
+                  const w = parseFloat(editWeight);
+                  const r = parseInt(editReps, 10);
+                  if (!isNaN(w) && !isNaN(r) && r > 0) {
+                    updateSet(editSet.id, { weightKg: Math.max(0, w), reps: Math.max(1, r) });
+                  }
+                  setEditSet(null);
+                }}
+                style={{
+                  flex: 2, height: 48, borderRadius: 14, border: 'none',
+                  background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
+                  color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+                }}
+              >Zapisz</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

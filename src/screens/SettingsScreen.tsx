@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { useProfileStore } from '../stores/profileStore';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { TimerSettings } from '../components/settings/TimerSettings';
-import { ThemeToggle } from '../components/settings/ThemeToggle';
 import { ExportImport } from '../components/settings/ExportImport';
 import { CustomExerciseForm } from '../components/settings/CustomExerciseForm';
 import { PROFILES } from '../constants/profiles';
@@ -98,12 +97,6 @@ export function SettingsScreen() {
         <div className="glass-card p-4">
           <TimerSettings profileId={activeProfile} />
         </div>
-      </div>
-
-      {/* Appearance */}
-      <div>
-        <SectionHeader title="Wygląd" />
-        <ThemeToggle />
       </div>
 
       {/* Custom exercises */}
