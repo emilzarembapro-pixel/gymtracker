@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Workout, WorkoutSet, ProfileId, NewPREvent } from '../types';
 import { storageGet, storageSet, storageRemove, STORAGE_KEYS } from '../utils/storage';
 import { todayISO } from '../utils/dates';
+import { RUNAWAY_MINUTES, RUNAWAY_REPLACEMENT_MINUTES } from '../constants/workout';
 
 interface WorkoutState {
   activeWorkout: Workout | null;
@@ -153,9 +154,15 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   finishWorkout: (notes) => {
     const { activeWorkout } = get();
     if (!activeWorkout) throw new Error('No active workout');
+    // A session left running for hours is a forgotten one, not a long workout.
+    // Recording the wall-clock value would poison every duration statistic.
+    const elapsedMin = (Date.now() - activeWorkout.startTime) / 60_000;
+    const endTime = elapsedMin > RUNAWAY_MINUTES
+      ? activeWorkout.startTime + RUNAWAY_REPLACEMENT_MINUTES * 60_000
+      : Date.now();
     const finished: Workout = {
       ...activeWorkout,
-      endTime: Date.now(),
+      endTime,
       notes,
     };
     storageRemove(STORAGE_KEYS.activeWorkout);

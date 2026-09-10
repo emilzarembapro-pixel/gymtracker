@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   customExercises: 'gym_custom_exercises',
   settings: 'gym_settings',
   plans: (id: ProfileId) => `gym_plans_${id}`,
+  runawayFix: 'gym_runaway_fix_v1',
 } as const;
 
 export function storageGet<T>(key: string, fallback: T): T {

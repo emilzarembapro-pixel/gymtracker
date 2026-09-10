@@ -1,6 +1,6 @@
 import type { Workout } from '../../types';
 import { useExerciseStore } from '../../stores/exerciseStore';
-import { formatDurationMinutes } from '../../utils/dates';
+import { formatDurationMinutes, plPlural } from '../../utils/dates';
 import { getTotalVolume, getWorkoutDuration } from '../../utils/calculations';
 import { PROFILE } from '../../constants/profiles';
 
@@ -86,7 +86,7 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
             </>
           )}
           {(duration > 0 || totalVolume > 0) && <span>·</span>}
-          <span>{workingSets.length} serii</span>
+          <span>{workingSets.length} {plPlural(workingSets.length, 'seria', 'serie', 'serii')}</span>
         </div>
         {/* Row 3: top set */}
         {topSet && topSetExerciseName && (

@@ -9,7 +9,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'klatka',
     equipment: 'sztanga',
     isCustom: false,
-    description: 'Połóż się na ławce, chwyć sztangę nieco szerzej niż szerokość barków. Opuść ją kontrolowanie do klatki piersiowej na poziomie brodawek, następnie wyciśnij do pełnego wyprostu ramion. Łokcie trzymaj pod kątem ok. 45–75° do tułowia.',
+    description: 'Połóż się na ławce, chwyć sztangę nieco szerzej niż szerokość barków. Opuść ją kontrolowanym ruchem do klatki piersiowej na poziomie brodawek, następnie wyciśnij do pełnego wyprostu ramion. Łokcie trzymaj pod kątem ok. 45–75° do tułowia.',
   },
   {
     id: 'wyciskanie-hantli-skos',
@@ -18,7 +18,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'klatka',
     equipment: 'hantle',
     isCustom: false,
-    description: 'Ustaw ławkę pod kątem 30–45°. Trzymaj hantle na poziomie górnej części klatki, łokcie lekko poniżej barków. Wyciśnij hantle ku górze zbliżając je do siebie nad klatką, następnie opuść kontrolowanie.',
+    description: 'Ustaw ławkę pod kątem 30–45°. Trzymaj hantle na poziomie górnej części klatki, łokcie lekko poniżej barków. Wyciśnij hantle ku górze zbliżając je do siebie nad klatką, następnie opuść kontrolowanym ruchem.',
   },
   {
     id: 'wyciskanie-hantli-poziom',
@@ -74,7 +74,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'klatka',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Ustaw siedzisko tak, by uchwyty były na poziomie środkowej klatki. Wyciśnij uchwyty do przodu do prawie pełnego wyprostu, następnie wróć kontrolowanie. Plecy trzymaj przy oparciu przez cały ruch.',
+    description: 'Ustaw siedzisko tak, by uchwyty były na poziomie środkowej klatki. Wyciśnij uchwyty do przodu do prawie pełnego wyprostu, następnie wróć kontrolowanym ruchem. Plecy trzymaj przy oparciu przez cały ruch.',
   },
   {
     id: 'incline-barbell-press',
@@ -110,7 +110,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'klatka',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Usiądź na maszynie, ustaw ramiona na podpórkach na poziomie barków z łokciami zgiętymi ok. 90°. Ściągnij ramiona do przodu, ściskając klatkę w środkowym punkcie. Wróć kontrolowanie nie przeciążając stawu barkowego.',
+    description: 'Usiądź na maszynie, ustaw ramiona na podpórkach na poziomie barków z łokciami zgiętymi ok. 90°. Ściągnij ramiona do przodu, ściskając klatkę w środkowym punkcie. Wróć kontrolowanym ruchem nie przeciążając stawu barkowego.',
   },
   {
     id: 'low-cable-fly',
@@ -196,7 +196,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'plecy',
     equipment: 'sztanga',
     isCustom: false,
-    description: 'Pochyl tułów do przodu ok. 45°, kolana lekko ugięte. Chwyć sztangę na szerokość barków i pociągnij ją do brzucha ściągając łopatki. Łokcie prowadź blisko tułowia. Opuść sztangę kontrolowanie do pełnego wyprostu ramion.',
+    description: 'Pochyl tułów do przodu ok. 45°, kolana lekko ugięte. Chwyć sztangę na szerokość barków i pociągnij ją do brzucha ściągając łopatki. Łokcie prowadź blisko tułowia. Opuść sztangę kontrolowanym ruchem do pełnego wyprostu ramion.',
   },
   {
     id: 'wioslowanie-hantel',
@@ -473,7 +473,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'nogi',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Usiądź na maszynie, nogi między podkładkami. Rozsuń nogi na zewnątrz, angażując odwodziciele biodra i mały pośladkowy. Wróć kontrolowanie, nie pozwalając ciężarowi kontrolować ruchu.',
+    description: 'Usiądź na maszynie, nogi między podkładkami. Rozsuń nogi na zewnątrz, angażując odwodziciele biodra i mały pośladkowy. Wróć kontrolowanym ruchem, nie pozwalając ciężarowi kontrolować ruchu.',
   },
   {
     id: 'hip-adduction',
@@ -651,7 +651,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'barki',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Usiądź lub stań przy maszynie do lateral raise, ramiona na podpórkach lub uchwyty przy bokach. Unieś ramiona na boki do poziomu barków. Maszyna utrzymuje stałe napięcie przez cały zakres ruchu i eliminuje podrywanie. Opuść kontrolowanie.',
+    description: 'Usiądź lub stań przy maszynie do lateral raise, ramiona na podpórkach lub uchwyty przy bokach. Unieś ramiona na boki do poziomu barków. Maszyna utrzymuje stałe napięcie przez cały zakres ruchu i eliminuje podrywanie. Opuść kontrolowanym ruchem.',
   },
   {
     id: 'reverse-fly-machine',
@@ -894,7 +894,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'brzuch',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Klęknij przed wyciągiem górnym z liną przy głowie. Zegnij tułów w dół ściągając łokcie do kolan, skupiając ruch na brzuchu (nie na biodrach). Wróć do pionu kontrolowanie. Lina przy skroniach przez cały czas.',
+    description: 'Klęknij przed wyciągiem górnym z liną przy głowie. Zegnij tułów w dół ściągając łokcie do kolan, skupiając ruch na brzuchu (nie na biodrach). Wróć do pionu kontrolowanym ruchem. Lina przy skroniach przez cały czas.',
   },
   {
     id: 'unoszenie-nog-zwis',
@@ -974,7 +974,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     equipment: 'wolny',
     isCustom: false,
     trackBy: 'reps-only',
-    description: 'Stań na krześle kapitańskim opierając przedramiona na podłokietnikach, plecy przyciśnięte do oparcia. Ugnij kolana unosząc je do klatki piersiowej, następnie opuść kontrolowanie. Angażuje prostą brzucha i biodrowo-lędźwiowy.',
+    description: 'Stań na krześle kapitańskim opierając przedramiona na podłokietnikach, plecy przyciśnięte do oparcia. Ugnij kolana unosząc je do klatki piersiowej, następnie opuść kontrolowanym ruchem. Angażuje prostą brzucha i biodrowo-lędźwiowy.',
   },
 
   // ─── PLECY (dodatkowe) ──────────────────────────────────────────────────────
@@ -985,7 +985,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'plecy',
     equipment: 'hantle',
     isCustom: false,
-    description: 'Pochyl tułów do przodu ok. 45°, kolana lekko ugięte, hantle zwisają prosto w dół. Pociągnij obie hantle jednocześnie do brzucha ściskając łopatki. Łokcie idą blisko tułowia. Opuść kontrolowanie do pełnego wyprostu. Angażuje cały środkowy grzbiet symetrycznie.',
+    description: 'Pochyl tułów do przodu ok. 45°, kolana lekko ugięte, hantle zwisają prosto w dół. Pociągnij obie hantle jednocześnie do brzucha ściskając łopatki. Łokcie idą blisko tułowia. Opuść kontrolowanym ruchem do pełnego wyprostu. Angażuje cały środkowy grzbiet symetrycznie.',
   },
   {
     id: 'iso-lateral-row-machine',
@@ -1065,7 +1065,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     equipment: 'maszyna',
     isCustom: false,
     trackBy: 'time',
-    description: 'Stań przed maszyną Ski Erg, chwyć uchwyty nad głową. Pociągnij je dynamicznie w dół i za biodra wykonując ruch narciarza (stok zjazdowy). Wróć do góry kontrolowanie. Angażuje mięśnie brzucha, najszersze grzbietu, ramiona i tricepsy. Świetne cardio z niskim wpływem na stawy.',
+    description: 'Stań przed maszyną Ski Erg, chwyć uchwyty nad głową. Pociągnij je dynamicznie w dół i za biodra wykonując ruch narciarza (stok zjazdowy). Wróć do góry kontrolowanym ruchem. Angażuje mięśnie brzucha, najszersze grzbietu, ramiona i tricepsy. Świetne cardio z niskim wpływem na stawy.',
   },
   {
     id: 'allahy',
@@ -1083,7 +1083,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'klatka',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Usiądź na maszynie do rozpiętek (inna niż pec deck — z uchwytami trzymanymi prosto, ruch w pełni poziomy). Ustaw uchwyty na poziomie środkowej klatki, łokcie lekko ugięte. Ściągnij uchwyty do siebie łukiem, ściskając klatkę przed tułowiem. Wróć kontrolowanie nie pozwalając rozciągnąć stawu barkowego za bardzo.',
+    description: 'Usiądź na maszynie do rozpiętek (inna niż pec deck — z uchwytami trzymanymi prosto, ruch w pełni poziomy). Ustaw uchwyty na poziomie środkowej klatki, łokcie lekko ugięte. Ściągnij uchwyty do siebie łukiem, ściskając klatkę przed tułowiem. Wróć kontrolowanym ruchem nie pozwalając rozciągnąć stawu barkowego za bardzo.',
   },
   {
     id: 'rozpietki-hantle-skos',
@@ -1122,7 +1122,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     equipment: 'wolny',
     isCustom: false,
     trackBy: 'reps-only',
-    description: 'Chwyć równoległe uchwyty dłońmi zwróconymi do siebie. Ten chwyt jest najbezpieczniejszy dla barków i łokci. Podciągnij się do wysokości klatki, ściągając łopatki w dół i do siebie, następnie opuść kontrolowanie.',
+    description: 'Chwyć równoległe uchwyty dłońmi zwróconymi do siebie. Ten chwyt jest najbezpieczniejszy dla barków i łokci. Podciągnij się do wysokości klatki, ściągając łopatki w dół i do siebie, następnie opuść kontrolowanym ruchem.',
   },
   {
     id: 'pendlay-row',
@@ -1176,7 +1176,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     category: 'nogi',
     equipment: 'maszyna',
     isCustom: false,
-    description: 'Usiądź w maszynie, wałek na biodrach, stopy płasko na platformie. Wypchnij biodra do pełnego wyprostu, ściskając pośladki na górze przez sekundę. Opuść kontrolowanie nie odrywając pleców od oparcia.',
+    description: 'Usiądź w maszynie, wałek na biodrach, stopy płasko na platformie. Wypchnij biodra do pełnego wyprostu, ściskając pośladki na górze przez sekundę. Opuść kontrolowanym ruchem nie odrywając pleców od oparcia.',
   },
   {
     id: 'cable-glute-kickback',
@@ -1277,7 +1277,7 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     equipment: 'wolny',
     isCustom: false,
     trackBy: 'reps-only',
-    description: 'Zablokuj stopy na ławce skośnej głową w dół. Zwiń tułów do kolan zaczynając ruch od odcinka piersiowego, nie od bioder. Opuść się kontrolowanie — im większy kąt ławki, tym trudniej.',
+    description: 'Zablokuj stopy na ławce skośnej głową w dół. Zwiń tułów do kolan zaczynając ruch od odcinka piersiowego, nie od bioder. Opuść się kontrolowanym ruchem — im większy kąt ławki, tym trudniej.',
   },
   {
     id: 'cable-woodchopper',
@@ -1287,6 +1287,43 @@ export const DEFAULT_EXERCISES: Exercise[] = [
     equipment: 'maszyna',
     isCustom: false,
     description: 'Ustaw wyciąg wysoko, chwyć uchwyt oburącz i stań bokiem do maszyny. Przeciągnij uchwyt po skosie do przeciwnego biodra, obracając tułów i pozwalając na rotację bioder. Ruch prowadzi brzuch, nie ramiona.',
+  },
+  // ─── Z WŁASNEJ LISTY EMILA (promowane do domyślnych) ───────────────────────
+  {
+    id: 'allahy',
+    name: 'Allahy — spięcia brzucha na maszynie',
+    nameEn: 'Machine Ab Crunch',
+    category: 'brzuch',
+    equipment: 'maszyna',
+    isCustom: false,
+    description: 'Usiądź w maszynie, chwyć uchwyty nad głową i oprzyj klatkę o wałek. Zwijaj tułów w dół prowadząc mostek do bioder, brzuch pracuje przez cały zakres. Wracaj powoli, nie pozwalając ciężarowi wyszarpnąć tułowia do pionu.',
+  },
+  {
+    id: 'pushdown-jednoracz',
+    name: 'Prostowanie ramienia na wyciągu jednorącz',
+    nameEn: 'Single-Arm Tricep Pushdown',
+    category: 'triceps',
+    equipment: 'maszyna',
+    isCustom: false,
+    description: 'Ustaw wyciąg wysoko i chwyć uchwyt jedną ręką podchwytem lub nachwytem. Prostuj łokieć trzymając ramię przyklejone do tułowia, druga ręka stabilizuje bark. Jednorącz wyrównuje różnice siły między stronami i daje większy zakres na końcu ruchu.',
+  },
+  {
+    id: 'malysz',
+    name: 'Małysz — przyciąganie na maszynie w opadzie',
+    nameEn: 'Malysz Machine Row',
+    category: 'plecy',
+    equipment: 'maszyna',
+    isCustom: false,
+    description: 'Ustaw się w maszynie w pozycji pochylonej z klatką opartą o wałek. Przyciągnij uchwyty do bioder ściągając łopatki, łokcie prowadź blisko tułowia. Nazwa od sylwetki skoczka narciarskiego, którą przyjmujesz w tej maszynie.',
+  },
+  {
+    id: 'lat-pulldown-plate-loaded',
+    name: 'Ściąganie drążka na maszynie talerzowej',
+    nameEn: 'Plate-Loaded Lat Pulldown',
+    category: 'plecy',
+    equipment: 'maszyna',
+    isCustom: false,
+    description: 'Usiądź, zablokuj uda pod wałkami i chwyć uchwyty maszyny talerzowej. Ściągnij uchwyty do klatki prowadząc łokcie w dół i do tyłu, klatka wypchnięta. Maszyna talerzowa prowadzi ruch po stałym torze, więc łatwiej wyizolować najszersze.',
   },
   {
     id: 'hollow-hold',
@@ -1325,6 +1362,15 @@ export const DEFAULT_EXERCISES: Exercise[] = [
  * dzięki czemu serie zapisane wcześniej w historii nadal pokazują nazwę ćwiczenia.
  */
 export const EXERCISE_ALIASES: Record<string, string> = {
+  // Custom entries promoted to defaults — the uuids live on in old sets.
+  '1c575a7f-30c0-4887-8e69-043e0de6696d': 'machine-chest-fly',
+  'a7de2aef-8abc-4830-8802-86f5541bbfab': 'allahy',
+  'df5bb168-4460-486a-8efe-452d0c659c7b': 'pushdown-jednoracz',
+  '766a563c-2cda-4567-a3d1-37f2cb7a6334': 'malysz',
+  '86eec276-31b5-4d4c-9977-11df04b78a76': 'lat-pulldown-plate-loaded',
+  // Exercises merged into another entry.
+  'scarecrow': 'face-pull',
+  'svend-press': 'pec-deck',
   'donkey-calf-raise': 'standing-calf-raise',
   'face-pull-cable-floor': 'face-pull',
   'hammer-curl-modlitownik': 'hammer-curl',

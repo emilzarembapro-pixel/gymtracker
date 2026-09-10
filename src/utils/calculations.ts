@@ -168,3 +168,67 @@ export function calculateStreak(workouts: Workout[]): number {
 
   return streak;
 }
+
+export interface AttendanceStats {
+  /** Every workout ever logged. */
+  total: number;
+  /**
+   * Averages over the span from the first workout to today, not per calendar
+   * unit. `null` until the span covers at least one whole unit — extrapolating
+   * a month from three days produces a headline number that means nothing.
+   */
+  perWeek: number | null;
+  perMonth: number | null;
+  spanDays: number;
+  /**
+   * Mean length in minutes. Trustworthy because runaway sessions are clamped —
+   * once on load for old history, and at finish time for everything since.
+   */
+  avgDurationMin: number;
+  /** How many workouts that mean is based on — the rest have no end time. */
+  timedCount: number;
+  firstDate: string | null;
+}
+
+const MS_PER_DAY = 86_400_000;
+
+/**
+ * `spanDaysOverride` fixes the window the averages are divided by — pass the
+ * selected period's length so "last 30 days" divides by 30 rather than by the
+ * gap between the first and last workout inside that window.
+ */
+export function getAttendanceStats(
+  workouts: Workout[],
+  spanDaysOverride?: number | null,
+): AttendanceStats {
+  if (workouts.length === 0) {
+    return { total: 0, perWeek: null, perMonth: null, spanDays: 0, avgDurationMin: 0, timedCount: 0, firstDate: null };
+  }
+
+  const firstDate = workouts.reduce((min, w) => (w.date < min ? w.date : min), workouts[0].date);
+
+  // Noon anchors dodge DST shifts that would otherwise round the span off by a day.
+  const spanDays = spanDaysOverride ?? Math.max(
+    1,
+    Math.round(
+      (new Date(`${todayISO()}T12:00:00`).getTime() - new Date(`${firstDate}T12:00:00`).getTime()) / MS_PER_DAY,
+    ) + 1,
+  );
+
+  const timed = workouts.filter(w => w.endTime && w.endTime > w.startTime);
+  const avgDurationMin = timed.length
+    ? Math.round(timed.reduce((sum, w) => sum + getWorkoutDuration(w), 0) / timed.length)
+    : 0;
+
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+
+  return {
+    total: workouts.length,
+    perWeek: spanDays >= 7 ? round1(workouts.length / (spanDays / 7)) : null,
+    perMonth: spanDays >= 30 ? round1(workouts.length / (spanDays / 30.44)) : null,
+    spanDays,
+    avgDurationMin,
+    timedCount: timed.length,
+    firstDate,
+  };
+}

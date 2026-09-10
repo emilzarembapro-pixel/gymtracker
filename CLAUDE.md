@@ -93,18 +93,26 @@ W widoku `activeWorkout + currentExerciseId` kolejność elementów:
 3. `<RestTimerRing>` (tylko gdy `isRunning`)
 4. `<SetLogger>` + `<SetList>`
 5. **Przycisk "Następne ćwiczenie"** — `handleNextExercise` przechodzi do kolejnego ćwiczenia w planie (po indeksie) lub wywołuje `selectExercise('')` gdy brak planu / koniec listy
-6. **Przycisk "Edytuj cały trening"** — otwiera `WorkoutEditor`
-7. Przyciski Zakończ / Anuluj trening
+6. Przycisk Zakończ trening
 
-`ElapsedBadge` (lokalny komponent w `WorkoutScreen.tsx`) pokazuje czas trwania trwającego treningu — interwał 1 s, liczony z `activeWorkout.startTime`. Renderowany w obu widokach aktywnego treningu.
+**Nie dodawaj tu przycisku "Edytuj cały trening"** ani pigułki "Edytuj" na karcie treningu w toku — został świadomie usunięty. Edytor otwiera się kliknięciem w kartę i to jedyna droga.
+
+`ElapsedBadge` (lokalny komponent w `WorkoutScreen.tsx`) pokazuje czas trwania trwającego treningu — interwał 1 s, liczony z `activeWorkout.startTime`. Renderowany w obu widokach aktywnego treningu, domyślnie w wariancie `size="lg"` (22 px, poświata w `--accent`) — czas ma być widoczny z odległości.
+
+W widoku bez wybranego ćwiczenia przyciski **Zakończ / Anuluj trening** stoją bezpośrednio pod kartą treningu w toku, nad listą ćwiczeń. Nie przenoś ich na dół — pod pełnym `ExercisePicker` przycisk był poza zasięgiem bez scrollowania.
 
 **Ważne**: `handleConfirmStart` wywołuje `startWorkout(PROFILE_ID)` **przed** `setActivePlan(plan.id)` — odwrotna kolejność powoduje wyzerowanie `activePlanId` przez `startWorkout` (który resetuje ten state).
 
 Przycisk "Zakończ trening" działa **in-place**: po kliknięciu przycisk zastępuje się modalem potwierdzenia (nie pojawia się pod spodem).
 
-Nad wszystkimi widokami renderują się dwa fixed-overlaye:
-- **Curtain** (`position: fixed, z-index: 9999`) — dwie połowy kurtyny rozjeżdżające się w górę/dół przy starcie treningu (600ms ease-in-out). Wyłączony gdy `useReducedMotion()`.
+Nad wszystkimi widokami renderuje się fixed-overlay:
 - **WorkoutCompletionOverlay** (`z-index: 10000`) — FIFA-style podsumowanie po zakończeniu treningu: czas, liczba ćwiczeń, serie robocze, łączny ciężar, a pod nimi lista **nowych rekordów** z tego treningu (serie z flagą `isPR`).
+
+### Start treningu
+
+`pendingStart` otwiera małe wyśrodkowane okienko: pigułka `TRENING #{workoutCount + 1}`, nazwa treningu i przyciski Anuluj / Rozpocznij. Nic więcej.
+
+Był tu kiedyś pełnoekranowy sheet z interaktywną sylwetką do zaznaczania trenowanych mięśni (`BodyMuscleMap`, `constants/muscles.ts`, pole `Workout.muscles`). Został usunięty na życzenie — sylwetka złożona z zaokrąglonych prostokątów wyglądała jak klocki. Nie przywracaj bez rozmowy.
 
 ### WorkoutEditor
 
@@ -151,7 +159,7 @@ Lista ćwiczeń w `ExerciseBrowser` **nie ma** ograniczenia `maxHeight` — scro
 
 Framer Motion jest zainstalowany i używany w:
 - `App.tsx` — tab transitions (`AnimatePresence mode="wait"`, fade+slide)
-- `WorkoutScreen.tsx` — curtain split, AnimatePresence dla overlayu
+- `WorkoutScreen.tsx` — AnimatePresence dla overlayu podsumowania. Start treningu jest **bez animacji** — kurtyna rozjeżdżająca się na pół została usunięta jako irytująca.
 - `WorkoutCompletionOverlay.tsx` — staggered slides + spring title
 - `ProgressRing.tsx` — spring `strokeDashoffset` na SVG circle
 
@@ -181,6 +189,8 @@ Equipment: `sztanga | hantle | maszyna | wolny`
 
 **Konwencja nazw**: nazwa musi rozróżniać wariant, chwyt lub akcesorium, bo od tego zależy, czy to osobne ćwiczenie czy duplikat. Przykłady: `Wide-Grip Lat Pulldown` / `Close-Grip Lat Pulldown` / `Reverse-Grip Lat Pulldown`, `Tricep Pushdown (Bar)` / `Tricep Pushdown (Rope)`, `High/Mid/Low Cable Fly`. Nie dodawaj drugiego wpisu na to samo ćwiczenie tylko dlatego, że maszyna nazywa się inaczej.
 
+Ćwiczenia dodane kiedyś ręcznie (uuid w `gym_custom_exercises`) zostały **promowane do `DEFAULT_EXERCISES`** pod slugami: `allahy`, `pushdown-jednoracz`, `malysz`, `lat-pulldown-plate-loaded`; "Chest fly" scalono z `machine-chest-fly`. Ich uuid żyją dalej w `EXERCISE_ALIASES`, a `exerciseStore.loadExercises()` odfiltrowuje z localStorage każdy custom, którego id jest w mapie aliasów — inaczej to samo ćwiczenie pojawiłoby się w pickerze dwa razy.
+
 `EXERCISE_ALIASES` na końcu pliku mapuje id ćwiczeń scalonych z innymi na aktualne id. `exerciseStore.getById` sięga tam, gdy nie znajdzie ćwiczenia wprost, dzięki czemu serie zapisane przed scaleniem dalej pokazują nazwę. Usuwając ćwiczenie, **zawsze** dopisz alias.
 
 Dodając nowe ćwiczenia: id musi być unikalnym slugiem (kebab-case), `isCustom: false`, `description` po polsku (instrukcja wykonania).
@@ -196,6 +206,29 @@ Po wybraniu ćwiczenia nad kafelkami statystyk renderuje się karta **REKORDY ·
 
 `useRestTimer` przechowuje `endTimestampRef = Date.now() + duration * 1000` (nie countdown). Interwał 250ms przelicza pozostały czas z timestampa. Listener `visibilitychange` resyncuje po powrocie z tła. Notification API opakowane w guard (`typeof Notification !== 'undefined'` + sprawdzenie `permission`) — na iOS PWA powiadomienia nie działają, fallback to tylko wibracja.
 
+### Frekwencja — AttendanceCard
+
+`src/components/stats/AttendanceCard.tsx` renderuje się **wyłącznie na StatsScreen**, nad selektorem okresu. W HistoryScreen jej nie ma — była w obu miejscach i to było zbędne powtórzenie.
+
+Karta **podąża za selektorem okresu**: dostaje już przefiltrowane `periodWorkouts` oraz `spanDays` z `PERIOD_DAYS`. Ten span jest kluczowy — bez niego "ostatnie 30 dni" dzieliłoby się przez odstęp między pierwszym a ostatnim treningiem w oknie zamiast przez 30.
+
+Kolejność okresów: **`Wsz.` jest pierwszy od lewej i domyślny**, potem 1M, 3M, 6M, 1R. Nie przestawiaj — `PERIODS` wyprowadza kolejność z `PERIOD_DAYS`, więc wystarczy zmienić ten obiekt.
+
+Liczy `getAttendanceStats(workouts, spanDaysOverride)`: liczba treningów, średnia tygodniowa i miesięczna oraz średnia długość treningu.
+
+Przy `Wsz.` span liczony jest od pierwszego treningu do dziś, a średnie zwracają `null` dopóki historia nie obejmie pełnego tygodnia / miesiąca — inaczej trzy treningi z jednego dnia dają "91,3 x / miesiąc".
+
+Kafelek "Seria z rzędu" (streak) został usunięty ze StatsScreen. `calculateStreak` żyje dalej i jest używany w nagłówku HistoryScreen.
+
+### Treningi bez zakończenia (runaway)
+
+Trening, którego użytkownik nie zakończył, tyka dalej — w danych siedziały sesje po 50 i 120 godzin, przez które średnia długość rosła z ~76 min do 411 min. Obrona jest dwuwarstwowa, obie w `src/constants/workout.ts`:
+
+- `workoutStore.finishWorkout()` — jeśli od startu minęło ponad `RUNAWAY_MINUTES` (240), zapisuje `endTime` jako start + `RUNAWAY_REPLACEMENT_MINUTES` (90) zamiast realnego zegara. Dzięki temu problem nie wraca.
+- `historyStore.repairRunawayDurations()` — jednorazowa naprawa istniejącej historii przy pierwszym wczytaniu, chroniona flagą `gym_runaway_fix_v1`. Import kopii zapasowej kasuje tę flagę, żeby przywrócone dane też przeszły naprawę.
+
+Nie zmieniaj `getAttendanceStats` na medianę — średnia jest wiarygodna dopóki obie warstwy działają.
+
 ### Utilities w calculations.ts
 
 Czyste funkcje bez zależności od React/stores — łatwo testowalne:
@@ -204,6 +237,9 @@ Czyste funkcje bez zależności od React/stores — łatwo testowalne:
 - `getWorkoutDuration(workout)` — minuty
 - `checkNewPRs(set, existingPRs, ...)` — zwraca `NewPREvent[]`
 - `calculateStreak(workouts)` — aktualny streak (dni), liczony na datach lokalnych
+- `getAttendanceStats(workouts)` — frekwencja od początku (patrz sekcja wyżej)
+
+`plPlural(n, one, few, many)` w `src/utils/dates.ts` obsługuje polską odmianę liczebników (1 dzień / 2 dni / 22 treningi / 12 treningów). Używaj go zamiast `n === 1 ? … : …` — inaczej wychodzi "1 dni z rzędu".
 
 ### Dźwięk
 

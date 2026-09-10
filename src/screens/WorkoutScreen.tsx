@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useWorkoutStore } from '../stores/workoutStore';
 import { useHistoryStore } from '../stores/historyStore';
 import { usePlanStore } from '../stores/planStore';
@@ -15,26 +14,31 @@ import { WorkoutCompletionOverlay } from '../components/workout/WorkoutCompletio
 import { WorkoutEditor } from '../components/workout/WorkoutEditor';
 import { Button } from '../components/ui/Button';
 import { formatDuration } from '../utils/calculations';
+import { plPlural } from '../utils/dates';
 import type { Exercise, PlannedExercise, Workout, WorkoutPlan, WorkoutSet } from '../types';
 import { PROFILE_ID } from '../constants/profiles';
 
-function ElapsedBadge({ startTime }: { startTime: number }) {
+function ElapsedBadge({ startTime, size = 'lg' }: { startTime: number; size?: 'sm' | 'lg' }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
   }, []);
+  const big = size === 'lg';
   return (
     <div style={{
-      display: 'inline-flex', alignItems: 'center', gap: 6,
-      padding: '4px 10px', borderRadius: 999,
-      background: 'var(--surface2)',
-      border: '1px solid var(--border-dim, rgba(255,255,255,0.08))',
-      fontSize: 12, fontWeight: 700,
+      display: 'inline-flex', alignItems: 'center', gap: big ? 8 : 6,
+      padding: big ? '8px 14px' : '4px 10px', borderRadius: 999,
+      background: big ? 'rgba(var(--accent-rgb),0.14)' : 'var(--surface2)',
+      border: `1px solid rgba(var(--accent-rgb),${big ? 0.4 : 0.12})`,
+      boxShadow: big ? '0 0 22px -8px rgba(var(--accent-rgb),0.75)' : 'none',
+      fontSize: big ? 22 : 12, fontWeight: 900,
+      letterSpacing: big ? '-0.02em' : 0,
       color: 'var(--accent)',
       fontVariantNumeric: 'tabular-nums',
+      lineHeight: 1,
     }}>
-      <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg viewBox="0 0 24 24" width={big ? 17 : 12} height={big ? 17 : 12} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 2" />
       </svg>
@@ -133,6 +137,7 @@ export function WorkoutScreen() {
   const cancelWorkout = useWorkoutStore(s => s.cancelWorkout);
   const setActivePlan = useWorkoutStore(s => s.setActivePlan);
   const addWorkout = useHistoryStore(s => s.addWorkout);
+  const workoutCount = useHistoryStore(s => s.workouts[PROFILE_ID].length);
   const plans = usePlanStore(s => s.getForProfile(PROFILE_ID));
   const addPlan = usePlanStore(s => s.addPlan);
   const deletePlan = usePlanStore(s => s.deletePlan);
@@ -142,14 +147,11 @@ export function WorkoutScreen() {
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [showPlanBuilder, setShowPlanBuilder] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [curtainActive, setCurtainActive] = useState(false);
   const [completedWorkout, setCompletedWorkout] = useState<Workout | null>(null);
   const [showExerciseDesc, setShowExerciseDesc] = useState(false);
   const [pendingStart, setPendingStart] = useState<{ kind: 'empty' } | { kind: 'plan'; plan: WorkoutPlan } | null>(null);
   const [workoutName, setWorkoutName] = useState('');
   const [showEditor, setShowEditor] = useState(false);
-
-  const prefersReducedMotion = useReducedMotion();
 
   const { secondsLeft, isRunning, start: startTimer, stop: stopTimer, addSeconds } = useRestTimer();
   const { arm: armLongRest, clear: clearLongRest } = useLongRestReminder();
@@ -167,10 +169,6 @@ export function WorkoutScreen() {
 
   const handleConfirmStart = () => {
     const name = workoutName.trim() || undefined;
-    if (!prefersReducedMotion) {
-      setCurtainActive(true);
-      window.setTimeout(() => setCurtainActive(false), 650);
-    }
     if (pendingStart?.kind === 'plan') {
       startWorkout(PROFILE_ID, name);
       setActivePlan(pendingStart.plan.id);
@@ -262,6 +260,13 @@ export function WorkoutScreen() {
             border: '1px solid rgba(255,255,255,0.1)',
             boxShadow: '0 24px 60px -12px rgba(0,0,0,0.8)',
           }} onClick={e => e.stopPropagation()}>
+            <div style={{
+              display: 'inline-block', padding: '4px 10px', borderRadius: 999, marginBottom: 10,
+              background: 'rgba(var(--accent-rgb),0.14)', border: '1px solid rgba(var(--accent-rgb),0.35)',
+              fontSize: 11, fontWeight: 800, letterSpacing: '0.08em', color: 'var(--accent)',
+            }}>
+              TRENING #{workoutCount + 1}
+            </div>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#FAFAFA', marginBottom: 6 }}>
               {pendingStart.kind === 'plan' ? pendingStart.plan.name : 'Nowy trening'}
             </div>
@@ -296,8 +301,7 @@ export function WorkoutScreen() {
                 style={{
                   flex: 2, height: 52, borderRadius: 16, border: 'none',
                   background: 'linear-gradient(135deg, var(--accent), var(--accent2))',
-                  color: '#fff', fontSize: 15, fontWeight: 700,
-                  cursor: 'pointer',
+                  color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer',
                   boxShadow: '0 8px 24px -6px rgba(var(--accent-rgb),0.5)',
                 }}
               >Rozpocznij</button>
@@ -305,42 +309,6 @@ export function WorkoutScreen() {
           </div>
         </div>
       )}
-
-      {/* ── Curtain split entrance ── */}
-      <AnimatePresence>
-        {curtainActive && (
-          <>
-            <motion.div
-              key="curtain-top"
-              initial={{ y: 0 }}
-              animate={{ y: '-100%' }}
-              exit={{ y: '-100%' }}
-              transition={{ duration: 0.6, ease: [0.65, 0, 0.35, 1] }}
-              style={{
-                position: 'fixed', top: 0, left: 0, right: 0, height: '50vh',
-                background: '#0A0A0A',
-                borderBottom: '1px solid var(--accent)',
-                zIndex: 9999,
-                pointerEvents: 'none',
-              }}
-            />
-            <motion.div
-              key="curtain-bottom"
-              initial={{ y: 0 }}
-              animate={{ y: '100%' }}
-              exit={{ y: '100%' }}
-              transition={{ duration: 0.6, ease: [0.65, 0, 0.35, 1] }}
-              style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, height: '50vh',
-                background: '#0A0A0A',
-                borderTop: '1px solid var(--accent)',
-                zIndex: 9999,
-                pointerEvents: 'none',
-              }}
-            />
-          </>
-        )}
-      </AnimatePresence>
 
       {/* ── Full workout editor ── */}
       {showEditor && activeWorkout && (
@@ -478,28 +446,48 @@ export function WorkoutScreen() {
                   }
                 />
               )}
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>
-                    {activePlan ? activePlan.name : (activeWorkout?.name ?? 'Trening w toku')}
-                  </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>
+                  {activePlan ? activePlan.name : (activeWorkout?.name ?? 'Trening w toku')}
+                </span>
+                <div style={{ marginTop: 8 }}>
                   <ElapsedBadge startTime={activeWorkout.startTime} />
                 </div>
-                <div className="flex gap-3 mt-2 items-center">
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{exerciseCount} ćwiczeń</span>
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{setCount} serii</span>
-                  <span
-                    className="text-xs font-semibold px-2.5 py-1 rounded-lg ml-auto flex items-center gap-1.5"
-                    style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}
-                  >
-                    <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                    </svg>
-                    Edytuj
-                  </span>
+                <div className="flex gap-3 mt-2.5 items-center">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{exerciseCount} {plPlural(exerciseCount, 'ćwiczenie', 'ćwiczenia', 'ćwiczeń')}</span>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{setCount} {plPlural(setCount, 'seria', 'serie', 'serii')}</span>
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Finish / cancel — kept directly under the card so it never sits
+              below the whole exercise picker */}
+          <div className="space-y-2">
+            {confirmFinish ? (
+              <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(var(--accent-rgb), 0.3)' }}>
+                <p className="text-white font-semibold">Zakończyć trening?</p>
+                <div className="flex gap-2">
+                  <Button variant="primary" fullWidth onClick={handleFinishWorkout}>Tak, zakończ</Button>
+                  <Button variant="ghost" fullWidth onClick={() => setConfirmFinish(false)}>Nie</Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="primary" size="lg" fullWidth onClick={() => setConfirmFinish(true)}>Zakończ trening</Button>
+            )}
+            {!confirmFinish && (
+              confirmCancel ? (
+                <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(220,38,38,0.4)', background: 'rgba(220,38,38,0.08)' }}>
+                  <p className="text-red-300 font-semibold">Anulować trening? Dane zostaną utracone.</p>
+                  <div className="flex gap-2">
+                    <Button variant="danger" fullWidth onClick={handleCancelWorkout}>Tak, anuluj</Button>
+                    <Button variant="ghost" fullWidth onClick={() => setConfirmCancel(false)}>Nie</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button variant="ghost" size="sm" fullWidth onClick={() => setConfirmCancel(true)}>Anuluj trening</Button>
+              )
+            )}
           </div>
 
           {/* Plan exercise list */}
@@ -536,7 +524,7 @@ export function WorkoutScreen() {
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: done ? 'rgba(255,255,255,0.5)' : '#FAFAFA' }}>{ex?.nameEn ?? pe.exerciseId}</div>
                       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                        {(pe.targetSets != null || pe.targetReps != null) ? `cel: ${pe.targetSets ?? '—'}×${pe.targetReps ?? '—'}${pe.targetWeightKg ? ` @ ${pe.targetWeightKg}kg` : ''} · ` : ''}wykonano: {doneSets} serii
+                        {(pe.targetSets != null || pe.targetReps != null) ? `cel: ${pe.targetSets ?? '—'}×${pe.targetReps ?? '—'}${pe.targetWeightKg ? ` @ ${pe.targetWeightKg}kg` : ''} · ` : ''}wykonano: {doneSets} {plPlural(doneSets, 'seria', 'serie', 'serii')}
                       </div>
                     </div>
                     <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="2" strokeLinecap="round"><path d="M9 6l6 6-6 6"/></svg>
@@ -557,33 +545,6 @@ export function WorkoutScreen() {
               <ExercisePicker onSelect={handleExerciseSelect} />
             </div>
           )}
-
-          <div className="space-y-2 pt-4">
-            {confirmFinish ? (
-              <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(var(--accent-rgb), 0.3)' }}>
-                <p className="text-white font-semibold">Zakończyć trening?</p>
-                <div className="flex gap-2">
-                  <Button variant="primary" fullWidth onClick={handleFinishWorkout}>Tak, zakończ</Button>
-                  <Button variant="ghost" fullWidth onClick={() => setConfirmFinish(false)}>Nie</Button>
-                </div>
-              </div>
-            ) : (
-              <Button variant="primary" size="lg" fullWidth onClick={() => setConfirmFinish(true)}>Zakończ trening</Button>
-            )}
-            {!confirmFinish && (
-              confirmCancel ? (
-                <div className="glass-card p-4 space-y-3" style={{ borderColor: 'rgba(220,38,38,0.4)', background: 'rgba(220,38,38,0.08)' }}>
-                  <p className="text-red-300 font-semibold">Anulować trening? Dane zostaną utracone.</p>
-                  <div className="flex gap-2">
-                    <Button variant="danger" fullWidth onClick={handleCancelWorkout}>Tak, anuluj</Button>
-                    <Button variant="ghost" fullWidth onClick={() => setConfirmCancel(false)}>Nie</Button>
-                  </div>
-                </div>
-              ) : (
-                <Button variant="ghost" size="sm" fullWidth onClick={() => setConfirmCancel(true)}>Anuluj trening</Button>
-              )
-            )}
-          </div>
         </div>
       )}
 
@@ -681,20 +642,6 @@ export function WorkoutScreen() {
             </svg>
           </button>
 
-          <button
-            onClick={() => setShowEditor(true)}
-            style={{
-              width: '100%', height: 48, borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
-              color: 'rgba(255,255,255,0.62)', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            }}
-          >
-            <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-            </svg>
-            Edytuj cały trening
-          </button>
 
           <div className="pt-2 space-y-2">
             {confirmFinish ? (

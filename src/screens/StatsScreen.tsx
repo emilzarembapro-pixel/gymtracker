@@ -4,21 +4,25 @@ import { useExerciseStore } from '../stores/exerciseStore';
 import { ExercisePicker } from '../components/workout/ExercisePicker';
 import { ExerciseChart } from '../components/stats/ExerciseChart';
 import { MetricToggle } from '../components/stats/MetricToggle';
+import { AttendanceCard } from '../components/stats/AttendanceCard';
 import { Modal } from '../components/ui/Modal';
 import { PROFILE_ID } from '../constants/profiles';
-import { calculateStreak, getTotalVolume, formatSecondsToTime } from '../utils/calculations';
-import { daysAgoISO } from '../utils/dates';
+import { getTotalVolume, formatSecondsToTime } from '../utils/calculations';
+import { daysAgoISO, plPlural } from '../utils/dates';
 import type { Exercise, PRType } from '../types';
 
-type Period = '1M' | '3M' | '6M' | '1R' | 'Wsz.';
+type Period = 'Wsz.' | '1M' | '3M' | '6M' | '1R';
 
 const PERIOD_DAYS: Record<Period, number | null> = {
+  'Wsz.': null,
   '1M': 30,
   '3M': 90,
   '6M': 180,
   '1R': 365,
-  'Wsz.': null,
 };
+
+/** Left-to-right order of the selector — widest first. */
+const PERIODS = Object.keys(PERIOD_DAYS) as Period[];
 
 export function StatsScreen() {
   const allWorkouts = useHistoryStore(s => s.workouts[PROFILE_ID]);
@@ -26,7 +30,7 @@ export function StatsScreen() {
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [metric, setMetric] = useState<PRType>('maxWeight');
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState<Period>('3M');
+  const [selectedPeriod, setSelectedPeriod] = useState<Period>('Wsz.');
 
   const selectedExercise = selectedExerciseId ? getById(selectedExerciseId) : null;
 
@@ -83,7 +87,6 @@ export function StatsScreen() {
       return sum;
     }, 0);
     const totalHours = Math.round(totalTimeMs / 3600000 * 10) / 10;
-    const streak = calculateStreak(allWorkouts);
 
     // Top exercises in period
     const exerciseCount = new Map<string, number>();
@@ -118,8 +121,8 @@ export function StatsScreen() {
       .sort((a, b) => b.sets - a.sets)
       .slice(0, 5);
 
-    return { streak, totalSets, totalVolumeKg, totalHours, topExercises, muscleVolume };
-  }, [allWorkouts, periodWorkouts, getById]);
+    return { totalSets, totalVolumeKg, totalHours, topExercises, muscleVolume };
+  }, [periodWorkouts, getById]);
 
   const maxMuscleSets = stats.muscleVolume[0]?.sets ?? 1;
 
@@ -128,18 +131,25 @@ export function StatsScreen() {
       {/* Title */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.42)', marginBottom: 4 }}>
-          POSTĘPY · OSTATNIE {selectedPeriod === 'Wsz.' ? 'WSZYSTKO' : selectedPeriod}
+          {selectedPeriod === 'Wsz.' ? 'POSTĘPY · CAŁA HISTORIA' : `POSTĘPY · OSTATNIE ${selectedPeriod}`}
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 900, color: '#FAFAFA', letterSpacing: '-0.02em' }}>
           Statystyki
         </h1>
       </div>
 
+      {/* Attendance — follows the period selector below it */}
+      <AttendanceCard
+        workouts={periodWorkouts}
+        periodLabel={selectedPeriod}
+        spanDays={PERIOD_DAYS[selectedPeriod]}
+      />
+
       {/* Period selector */}
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6, marginBottom: 20,
       }}>
-        {(['1M', '3M', '6M', '1R', 'Wsz.'] as Period[]).map(period => (
+        {PERIODS.map(period => (
           <button
             key={period}
             onClick={() => setSelectedPeriod(period)}
@@ -265,16 +275,17 @@ export function StatsScreen() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
         {[
           { label: 'Seria', value: stats.totalSets.toString(), sub: 'serie robocze' },
-          { label: 'Seria z rzędu', value: stats.streak.toString(), sub: 'dni streak' },
           { label: 'Objętość', value: `${Math.round(stats.totalVolumeKg / 100) / 10}t`, sub: 'łączna masa' },
           { label: 'Czas', value: `${stats.totalHours}h`, sub: 'godzin' },
-        ].map(tile => (
+        ].map((tile, i, all) => (
           <div
             key={tile.label}
             style={{
               borderRadius: 18, padding: '16px',
               background: 'var(--surface)',
               border: '1px solid rgba(255,255,255,0.07)',
+              // An odd tile count would otherwise leave a half-width orphan
+              ...(all.length % 2 === 1 && i === all.length - 1 ? { gridColumn: 'span 2' } : {}),
             }}
           >
             <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)', marginBottom: 6 }}>
@@ -306,7 +317,7 @@ export function StatsScreen() {
               <div key={item.name}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 13, fontWeight: 600, color: '#FAFAFA' }}>{item.name}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>{item.sets} serii</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)' }}>{item.sets} {plPlural(item.sets, 'seria', 'serie', 'serii')}</span>
                 </div>
                 <div style={{ height: 4, borderRadius: 4, background: 'var(--surface3)' }}>
                   <div style={{

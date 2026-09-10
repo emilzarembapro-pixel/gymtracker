@@ -6,7 +6,7 @@ import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
 import { PROFILE_ID } from '../constants/profiles';
 import { calculateStreak } from '../utils/calculations';
-import { toDateStr } from '../utils/dates';
+import { toDateStr, plPlural } from '../utils/dates';
 import type { Workout } from '../types';
 
 const WEEKDAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
@@ -102,7 +102,7 @@ export function HistoryScreen() {
         marginBottom: 16,
       }}>
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
-          {streak > 0 ? `${streak} dni z rzędu` : ''}
+          {streak > 0 ? `${streak} ${plPlural(streak, 'dzień', 'dni', 'dni')} z rzędu` : ''}
         </span>
       </div>
 
@@ -189,7 +189,7 @@ export function HistoryScreen() {
         {/* Legend */}
         <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' }}>
-            {monthWorkouts.length} {monthWorkouts.length === 1 ? 'trening' : monthWorkouts.length < 5 ? 'treningi' : 'treningów'} w miesiącu
+            {monthWorkouts.length} {plPlural(monthWorkouts.length, 'trening', 'treningi', 'treningów')} w miesiącu
           </span>
         </div>
       </div>

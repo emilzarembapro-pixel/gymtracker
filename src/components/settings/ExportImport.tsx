@@ -100,6 +100,8 @@ export function ExportImport() {
     // A restored backup has nothing to do with the session in progress
     storageRemove(STORAGE_KEYS.activeWorkout);
     storageRemove(STORAGE_KEYS.activeSession);
+    // The imported history has not been through the runaway-duration repair yet
+    storageRemove(STORAGE_KEYS.runawayFix);
     setImportModal(false);
     window.location.reload();
   };

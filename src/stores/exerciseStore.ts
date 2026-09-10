@@ -13,7 +13,13 @@ interface ExerciseState {
 
 function loadExercises(): Exercise[] {
   const custom = storageGet<Exercise[]>(STORAGE_KEYS.customExercises, []);
-  return [...DEFAULT_EXERCISES, ...custom];
+  // A custom entry that has since been promoted into DEFAULT_EXERCISES gets an
+  // alias — dropping it here stops the picker from listing the same lift twice.
+  const stillCustom = custom.filter(e => !(e.id in EXERCISE_ALIASES));
+  if (stillCustom.length !== custom.length) {
+    storageSet(STORAGE_KEYS.customExercises, stillCustom);
+  }
+  return [...DEFAULT_EXERCISES, ...stillCustom];
 }
 
 export const useExerciseStore = create<ExerciseState>((set, get) => ({

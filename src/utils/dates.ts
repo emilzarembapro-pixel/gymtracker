@@ -55,3 +55,16 @@ export function formatRelativeDate(dateStr: string): string {
 
   return formatDateShort(dateStr);
 }
+
+/**
+ * Polish plural selection: 1 → `one`, 2–4 (but not 12–14) → `few`, rest → `many`.
+ * `1 dni z rzędu` and `22 treningów` are both wrong without this.
+ */
+export function plPlural(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n);
+  if (abs === 1) return one;
+  const last = abs % 10;
+  const lastTwo = abs % 100;
+  if (last >= 2 && last <= 4 && !(lastTwo >= 12 && lastTwo <= 14)) return few;
+  return many;
+}
