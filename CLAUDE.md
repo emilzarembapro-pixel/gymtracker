@@ -135,10 +135,11 @@ Nowa seria dodana w edytorze jest kopią ostatniej i od razu otwiera modal — P
 - Kafelek KG i POWT. mają identyczny design (gradient background, accent border). Przycisk `+` w obu kafelkach jest `var(--accent)`.
 - Kółka serii nad loggerem pokazują `S1`, `S2`… dla serii roboczych. Gdy toggle rozgrzewkowy jest aktywny, bieżące kółko pokazuje `R` zamiast `S`. Ukończone kółka (zielone) są klikalne i otwierają modal edycji tej serii.
 - **Domyślny ciężar**: przy wejściu w ćwiczenie pole KG jest wypełniane ciężarem z **2. serii roboczej** poprzedniego treningu (fallback: ostatnia seria robocza). Tylko dla `trackBy: 'weight-reps'`.
-- Po zapisaniu serii pole KG **zostaje** wypełnione — zerują się tylko powtórzenia / czas.
+- **Domyślne powtórzenia**: pole POWT. startuje z `DEFAULT_REPS` (7) i wraca do tej wartości po każdym zapisie oraz przy zmianie ćwiczenia.
+- Po zapisaniu serii pole KG **zostaje** wypełnione — resetuje się tylko czas, a powtórzenia wracają do 7.
 - `computeFontSize()` skaluje font inputu w dół wraz z długością wartości (52 → 24 px), żeby trzycyfrowe ciężary (`102.5`) mieściły się w kafelku. Kafelek ma `minWidth: 0` + `overflow: hidden`, a siatka `minmax(0, 1fr)` — bez tego input `type="number"` rozpycha kolumnę.
 
-**LastWorkoutPanel** pokazuje **wszystkie** serie z poprzedniego treningu (zawijana siatka `auto-fill minmax(66px, 1fr)`), z etykietami R1/R2 dla rozgrzewki i S1/S2… dla serii roboczych. Nie ograniczaj tej listy `slice()` — właśnie po to została zmieniona.
+**LastWorkoutPanel** w nagłówku pokazuje `daysAgoLabel()` ("3 dni temu"), nie datę — liczy się odstęp od poprzedniej sesji, nie dzień kalendarzowy. Pokazuje **wszystkie** serie z poprzedniego treningu (zawijana siatka `auto-fill minmax(66px, 1fr)`), z etykietami R1/R2 dla rozgrzewki i S1/S2… dla serii roboczych. Nie ograniczaj tej listy `slice()` — właśnie po to została zmieniona.
 
 **SetList** (`src/components/workout/SetList.tsx`):
 - Serie podzielone na dwie sekcje: **Rozgrzewka** (etykiety R1, R2…) i **Serie robocze** (S1, S2…).

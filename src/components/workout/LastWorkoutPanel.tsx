@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useHistoryStore } from '../../stores/historyStore';
 import { formatSecondsToTime } from '../../utils/calculations';
 import type { ExerciseTrackBy, ProfileId, WorkoutSet } from '../../types';
-import { formatRelativeDate } from '../../utils/dates';
+import { daysAgoLabel, plPlural } from '../../utils/dates';
 
 interface LastWorkoutPanelProps {
   exerciseId: string;
@@ -53,7 +53,7 @@ export function LastWorkoutPanel({ exerciseId, profileId, trackBy = 'weight-reps
           </span>
         </div>
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.42)' }}>
-          {formatRelativeDate(lastWorkout.date)} · {setsForExercise.length} serii
+          {daysAgoLabel(lastWorkout.date)} · {setsForExercise.length} {plPlural(setsForExercise.length, 'seria', 'serie', 'serii')}
         </span>
       </div>
 

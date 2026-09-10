@@ -41,6 +41,18 @@ export function formatDurationMinutes(minutes: number): string {
   return `${h} godz. ${m} min`;
 }
 
+/**
+ * Always "how long ago", never a calendar date — on the set logger the gap
+ * since the last session is the useful number, not the day it fell on.
+ */
+export function daysAgoLabel(dateStr: string): string {
+  const noon = (d: string) => new Date(`${d}T12:00:00`).getTime();
+  const diff = Math.round((noon(todayISO()) - noon(dateStr)) / 86400000);
+  if (diff <= 0) return 'Dzisiaj';
+  if (diff === 1) return 'Wczoraj';
+  return `${diff} dni temu`;
+}
+
 export function formatRelativeDate(dateStr: string): string {
   const today = todayISO();
 

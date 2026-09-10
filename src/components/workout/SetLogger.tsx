@@ -12,6 +12,9 @@ import { HAPTIC } from '../../utils/haptics';
 import { parseTimeToSeconds, formatSecondsToTime } from '../../utils/calculations';
 import type { WorkoutSet, ExerciseTrackBy } from '../../types';
 
+/** Pre-filled rep count for a fresh set. */
+const DEFAULT_REPS = '7';
+
 interface SetLoggerProps {
   exerciseId: string;
   onTimerStart?: (duration: number) => void;
@@ -70,7 +73,7 @@ export function SetLogger({ exerciseId, onTimerStart, onSetSaved, targetReps, ta
   const workingSetsCount = workingSets.length;
 
   const [weightStr, setWeightStr] = useState(suggestedWeight);
-  const [repsStr, setRepsStr] = useState('');
+  const [repsStr, setRepsStr] = useState(DEFAULT_REPS);
   const [timeStr, setTimeStr] = useState('');
   const [isWarmup, setIsWarmup] = useState(false);
   const [error, setError] = useState('');
@@ -83,7 +86,7 @@ export function SetLogger({ exerciseId, onTimerStart, onSetSaved, targetReps, ta
   if (exerciseId !== prevExerciseId) {
     setPrevExerciseId(exerciseId);
     setWeightStr(suggestedWeight);
-    setRepsStr('');
+    setRepsStr(DEFAULT_REPS);
     setTimeStr('');
     setIsWarmup(false);
     setError('');
@@ -148,8 +151,8 @@ export function SetLogger({ exerciseId, onTimerStart, onSetSaved, targetReps, ta
       onTimerStart(timerDuration);
     }
 
-    // Keep the weight for the next set — only reps/time reset
-    setRepsStr('');
+    // Keep the weight for the next set — reps go back to the default, time clears
+    setRepsStr(DEFAULT_REPS);
     setTimeStr('');
     setIsWarmup(false);
   };
