@@ -39,17 +39,8 @@ const tabs: Array<{
     ),
   },
   {
-    id: 'comparison',
-    label: 'Porównaj',
-    icon: (
-      <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 6l3 12 3-9M13 6l3 12 3-9"/>
-      </svg>
-    ),
-  },
-  {
     id: 'settings',
-    label: 'Profil',
+    label: 'Ustawienia',
     icon: (
       <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>

@@ -1,4 +1,4 @@
-export type ProfileId = 'emil' | 'nikola';
+export type ProfileId = 'emil';
 
 export type ExerciseCategory =
   | 'klatka' | 'plecy' | 'nogi' | 'barki'
@@ -6,9 +6,11 @@ export type ExerciseCategory =
 
 export type ExerciseEquipment = 'sztanga' | 'hantle' | 'maszyna' | 'wolny';
 
-export type PRType = '1rm' | 'maxWeight' | 'maxVolume';
+export type ExerciseTrackBy = 'weight-reps' | 'reps-only' | 'time';
 
-export type TabId = 'workout' | 'history' | 'stats' | 'comparison' | 'settings';
+export type PRType = '1rm' | 'maxWeight' | 'maxVolume' | 'maxReps' | 'maxTime';
+
+export type TabId = 'workout' | 'history' | 'stats' | 'settings';
 
 export interface PlannedExercise {
   exerciseId: string;
@@ -32,15 +34,13 @@ export interface Exercise {
   category: ExerciseCategory;
   equipment: ExerciseEquipment;
   isCustom: boolean;
-  ownerId?: ProfileId;
-  isPinned?: boolean;
   description?: string;
+  trackBy?: ExerciseTrackBy;
 }
 
 export interface WorkoutSet {
   id: string;
   exerciseId: string;
-  setNumber: number;
   weightKg: number;
   reps: number;
   isWarmup: boolean;
@@ -72,7 +72,6 @@ export interface PersonalRecord {
 export interface AppSettings {
   timerEnabled: Record<ProfileId, boolean>;
   timerDuration: Record<ProfileId, number>;
-  theme: 'dark' | 'light' | 'auto';
   pinnedExercises: Record<ProfileId, string[]>;
 }
 

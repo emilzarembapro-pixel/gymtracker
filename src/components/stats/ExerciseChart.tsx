@@ -25,6 +25,8 @@ function getMetricValue(metric: PRType, weightKg: number, reps: number): number 
     case 'maxWeight': return weightKg;
     case 'maxVolume': return calcVolume(weightKg, reps);
     case '1rm': return epley1RM(weightKg, reps);
+    case 'maxReps': return reps;
+    case 'maxTime': return reps;
   }
 }
 
@@ -53,13 +55,13 @@ function CustomDot({ cx = 0, cy = 0, payload }: CustomDotProps) {
 }
 
 export function ExerciseChart({ exerciseId, profileId, metric }: ExerciseChartProps) {
-  const getForProfile = useHistoryStore(s => s.getForProfile);
-  const getForExercise = usePRStore(s => s.getForExercise);
+  const workouts = useHistoryStore(s => s.workouts[profileId]);
+  const allPRs = usePRStore(s => s.prs[profileId]);
 
   const data = useMemo((): ChartPoint[] => {
-    const workouts = getForProfile(profileId);
-    const prs = getForExercise(exerciseId, profileId);
-    const prDates = new Set(prs.map(p => p.date));
+    const prDates = new Set(
+      allPRs.filter(p => p.exerciseId === exerciseId).map(p => p.date),
+    );
 
     const byDate = new Map<string, number>();
     for (const workout of workouts) {
@@ -81,7 +83,7 @@ export function ExerciseChart({ exerciseId, profileId, metric }: ExerciseChartPr
         value: Math.round(value * 10) / 10,
         isPR: prDates.has(date),
       }));
-  }, [exerciseId, profileId, metric, getForProfile, getForExercise]);
+  }, [exerciseId, metric, workouts, allPRs]);
 
   if (data.length === 0) {
     return (
@@ -94,12 +96,8 @@ export function ExerciseChart({ exerciseId, profileId, metric }: ExerciseChartPr
   const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#3b82f6';
 
   const formatXAxis = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return `${d.getDate()}.${d.getMonth() + 1}`;
-    } catch {
-      return dateStr;
-    }
+    const [, month, day] = dateStr.split('-');
+    return month && day ? `${parseInt(day, 10)}.${parseInt(month, 10)}` : dateStr;
   };
 
   const yLabel = metric === 'maxVolume' ? 'kg vol.' : 'kg';

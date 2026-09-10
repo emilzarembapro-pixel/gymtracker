@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'Gym Tracker',
         short_name: 'GymTracker',
-        description: 'Śledzenie treningów — Nunek & Nuna',
+        description: 'Śledzenie treningów siłowych — offline, bez konta',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

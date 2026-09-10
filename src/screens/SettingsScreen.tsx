@@ -1,12 +1,9 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useProfileStore } from '../stores/profileStore';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { TimerSettings } from '../components/settings/TimerSettings';
 import { ExportImport } from '../components/settings/ExportImport';
 import { CustomExerciseForm } from '../components/settings/CustomExerciseForm';
-import { PROFILES } from '../constants/profiles';
-import type { ProfileId } from '../types';
+import { PROFILE_ID } from '../constants/profiles';
 
 function SectionHeader({ title }: { title: string }) {
   return (
@@ -20,82 +17,21 @@ function SectionHeader({ title }: { title: string }) {
 }
 
 export function SettingsScreen() {
-  const activeProfile = useProfileStore(s => s.activeProfile);
-  const setProfile = useProfileStore(s => s.setProfile);
   const exercises = useExerciseStore(s => s.exercises);
   const deleteCustomExercise = useExerciseStore(s => s.deleteCustomExercise);
   const [showCustomForm, setShowCustomForm] = useState(false);
 
-  const customExercises = exercises.filter(e => e.isCustom && (
-    !e.ownerId || e.ownerId === activeProfile
-  ));
+  const customExercises = exercises.filter(e => e.isCustom);
 
   return (
     <div className="px-4 pt-6 pb-8 space-y-6">
       <h1 className="text-2xl font-black text-white">Ustawienia</h1>
 
-      {/* Profile */}
-      <div>
-        <SectionHeader title="Profil" />
-        <div className="flex gap-3">
-          {(Object.values(PROFILES) as typeof PROFILES[ProfileId][]).map(profile => {
-            const isActive = profile.id === activeProfile;
-            return (
-              <button
-                key={profile.id}
-                onClick={() => setProfile(profile.id)}
-                className="relative flex-1 flex flex-col items-center gap-2.5 p-5 rounded-3xl transition-all duration-300"
-                style={{
-                  background: isActive
-                    ? `rgba(${profile.id === 'emil' ? '59,130,246' : '244,63,94'}, 0.12)`
-                    : 'var(--bg-surface)',
-                  border: `1px solid ${isActive ? profile.accent : 'var(--border-glass)'}`,
-                  transition: 'background 0.3s ease, border-color 0.3s ease',
-                }}
-              >
-                {/* Animated selection ring */}
-                {isActive && (
-                  <motion.div
-                    layoutId="profile-ring"
-                    className="absolute inset-0 rounded-3xl pointer-events-none"
-                    style={{ border: `2px solid ${profile.accent}` }}
-                    transition={{ type: 'spring', damping: 28, stiffness: 350 }}
-                  />
-                )}
-                <div
-                  className="w-12 h-12 rounded-full overflow-hidden"
-                  style={{ boxShadow: isActive ? `0 0 0 2px ${profile.accent}` : 'none' }}
-                >
-                  {profile.avatar
-                    ? <img src={profile.avatar} alt={profile.fullName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div className="w-full h-full flex items-center justify-center text-xl font-black text-white"
-                        style={{ background: `linear-gradient(135deg, ${profile.accent}, ${profile.accentMuted})` }}>
-                        {profile.fullName[0]}
-                      </div>
-                  }
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-bold text-white">{profile.fullName}</div>
-                  <div className="text-xs font-medium mt-0.5" style={{ color: profile.accent }}>
-                    {profile.nickname}
-                  </div>
-                </div>
-                {isActive && (
-                  <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: profile.accent }}>
-                    Aktywny
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Timer */}
       <div>
         <SectionHeader title="Timer odpoczynku" />
         <div className="glass-card p-4">
-          <TimerSettings profileId={activeProfile} />
+          <TimerSettings profileId={PROFILE_ID} />
         </div>
       </div>
 

@@ -22,12 +22,11 @@ function savePlans(profileId: ProfileId, plans: WorkoutPlan[]) {
 export const usePlanStore = create<PlanState>((set, get) => ({
   plans: {
     emil: loadPlans('emil'),
-    nikola: loadPlans('nikola'),
   },
 
-  getForProfile: (profileId) => get().plans[profileId],
+  getForProfile: (profileId) => get().plans[profileId] ?? [],
 
-  getById: (id, profileId) => get().plans[profileId].find(p => p.id === id),
+  getById: (id, profileId) => (get().plans[profileId] ?? []).find(p => p.id === id),
 
   addPlan: (plan) => {
     const newPlan: WorkoutPlan = {
@@ -36,7 +35,7 @@ export const usePlanStore = create<PlanState>((set, get) => ({
       createdAt: new Date().toISOString(),
     };
     set(state => {
-      const updated = [...state.plans[plan.profileId], newPlan];
+      const updated = [...(state.plans[plan.profileId] ?? []), newPlan];
       savePlans(plan.profileId, updated);
       return { plans: { ...state.plans, [plan.profileId]: updated } };
     });
@@ -45,7 +44,7 @@ export const usePlanStore = create<PlanState>((set, get) => ({
 
   deletePlan: (id, profileId) => {
     set(state => {
-      const updated = state.plans[profileId].filter(p => p.id !== id);
+      const updated = (state.plans[profileId] ?? []).filter(p => p.id !== id);
       savePlans(profileId, updated);
       return { plans: { ...state.plans, [profileId]: updated } };
     });

@@ -1,21 +1,47 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useWorkoutStore } from '../stores/workoutStore';
 import { useHistoryStore } from '../stores/historyStore';
-import { useProfileStore } from '../stores/profileStore';
 import { usePlanStore } from '../stores/planStore';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { useRestTimer } from '../hooks/useRestTimer';
+import { useLongRestReminder } from '../hooks/useLongRestReminder';
 import { ExercisePicker } from '../components/workout/ExercisePicker';
 import { SetLogger } from '../components/workout/SetLogger';
 import { SetList } from '../components/workout/SetList';
 import { PlanBuilder } from '../components/workout/PlanBuilder';
 import { ProgressRing } from '../components/ui/ProgressRing';
 import { WorkoutCompletionOverlay } from '../components/workout/WorkoutCompletionOverlay';
+import { WorkoutEditor } from '../components/workout/WorkoutEditor';
 import { Button } from '../components/ui/Button';
-import { ProfileSwitch } from '../components/ui/ProfileSwitch';
-import type { Exercise, PlannedExercise, Workout, WorkoutPlan } from '../types';
-import { PROFILES } from '../constants/profiles';
+import { formatDuration } from '../utils/calculations';
+import type { Exercise, PlannedExercise, Workout, WorkoutPlan, WorkoutSet } from '../types';
+import { PROFILE_ID } from '../constants/profiles';
+
+function ElapsedBadge({ startTime }: { startTime: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', gap: 6,
+      padding: '4px 10px', borderRadius: 999,
+      background: 'var(--surface2)',
+      border: '1px solid var(--border-dim, rgba(255,255,255,0.08))',
+      fontSize: 12, fontWeight: 700,
+      color: 'var(--accent)',
+      fontVariantNumeric: 'tabular-nums',
+    }}>
+      <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </svg>
+      {formatDuration(now - startTime)}
+    </div>
+  );
+}
 
 const RING_R = 38;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_R;
@@ -107,8 +133,7 @@ export function WorkoutScreen() {
   const cancelWorkout = useWorkoutStore(s => s.cancelWorkout);
   const setActivePlan = useWorkoutStore(s => s.setActivePlan);
   const addWorkout = useHistoryStore(s => s.addWorkout);
-  const activeProfile = useProfileStore(s => s.activeProfile);
-  const plans = usePlanStore(s => s.getForProfile(activeProfile));
+  const plans = usePlanStore(s => s.getForProfile(PROFILE_ID));
   const addPlan = usePlanStore(s => s.addPlan);
   const deletePlan = usePlanStore(s => s.deletePlan);
   const getById = useExerciseStore(s => s.getById);
@@ -122,13 +147,13 @@ export function WorkoutScreen() {
   const [showExerciseDesc, setShowExerciseDesc] = useState(false);
   const [pendingStart, setPendingStart] = useState<{ kind: 'empty' } | { kind: 'plan'; plan: WorkoutPlan } | null>(null);
   const [workoutName, setWorkoutName] = useState('');
+  const [showEditor, setShowEditor] = useState(false);
 
   const prefersReducedMotion = useReducedMotion();
 
   const { secondsLeft, isRunning, start: startTimer, stop: stopTimer, addSeconds } = useRestTimer();
+  const { arm: armLongRest, clear: clearLongRest } = useLongRestReminder();
   const [timerTotal, setTimerTotal] = useState(0);
-
-  const profile = PROFILES[activeProfile];
 
   const handleStartWorkout = () => {
     setWorkoutName('');
@@ -147,17 +172,17 @@ export function WorkoutScreen() {
       window.setTimeout(() => setCurtainActive(false), 650);
     }
     if (pendingStart?.kind === 'plan') {
-      startWorkout(activeProfile, name);
+      startWorkout(PROFILE_ID, name);
       setActivePlan(pendingStart.plan.id);
     } else {
       setActivePlan(null);
-      startWorkout(activeProfile, name);
+      startWorkout(PROFILE_ID, name);
     }
     setPendingStart(null);
   };
 
   const handleSavePlan = (name: string, exercises: PlannedExercise[]) => {
-    addPlan({ name, exercises, profileId: activeProfile });
+    addPlan({ name, exercises, profileId: PROFILE_ID });
     setShowPlanBuilder(false);
   };
 
@@ -170,6 +195,8 @@ export function WorkoutScreen() {
     const finished = finishWorkout();
     addWorkout(finished);
     stopTimer();
+    clearLongRest();
+    setShowEditor(false);
     setConfirmFinish(false);
     setCompletedWorkout(finished);
   };
@@ -177,8 +204,14 @@ export function WorkoutScreen() {
   const handleCancelWorkout = () => {
     cancelWorkout();
     stopTimer();
+    clearLongRest();
+    setShowEditor(false);
     setConfirmCancel(false);
   };
+
+  const handleSetSaved = useCallback((savedSet: WorkoutSet) => {
+    if (!savedSet.isWarmup) armLongRest();
+  }, [armLongRest]);
 
   const handleTimerStart = useCallback((duration: number) => {
     setTimerTotal(duration);
@@ -309,6 +342,14 @@ export function WorkoutScreen() {
         )}
       </AnimatePresence>
 
+      {/* ── Full workout editor ── */}
+      {showEditor && activeWorkout && (
+        <WorkoutEditor
+          onClose={() => setShowEditor(false)}
+          onGoToExercise={id => { setShowEditor(false); selectExercise(id); }}
+        />
+      )}
+
       {/* ── FIFA completion overlay ── */}
       <WorkoutCompletionOverlay
         workout={completedWorkout}
@@ -324,18 +365,14 @@ export function WorkoutScreen() {
           <div style={{ padding: '0 20px', paddingBottom: 32, overflowY: 'auto', height: '100%' }}>
             <div style={{
               paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              marginBottom: 8,
-            }}>
-              <ProfileSwitch />
-            </div>
+            }} />
 
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.42)', fontWeight: 600, marginBottom: 4, letterSpacing: '0.03em' }}>
               {getTodayLabel()}
             </div>
 
             <h1 style={{ fontSize: 28, fontWeight: 900, color: '#FAFAFA', letterSpacing: '-0.02em', marginBottom: 24 }}>
-              Cześć, {profile.nickname}!
+              Cześć!
             </h1>
 
             <div style={{
@@ -391,7 +428,7 @@ export function WorkoutScreen() {
                             </div>
                           </div>
                           <button
-                            onClick={() => deletePlan(plan.id, activeProfile)}
+                            onClick={() => deletePlan(plan.id, PROFILE_ID)}
                             style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.2)', fontSize: 16, cursor: 'pointer', padding: '0 4px', lineHeight: 1 }}
                           >×</button>
                         </div>
@@ -416,12 +453,12 @@ export function WorkoutScreen() {
       {/* ── Active workout, no exercise selected ── */}
       {activeWorkout && !currentExerciseId && (
         <div className="px-4 py-4 space-y-4">
-          <div style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 8px)' }}>
-            <ProfileSwitch />
-          </div>
-
-          {/* Active workout header */}
-          <div className="glass-card p-4" style={{ borderLeft: '3px solid var(--accent)' }}>
+          {/* Active workout header — tap to edit the whole workout */}
+          <div
+            onClick={() => setShowEditor(true)}
+            className="glass-card p-4"
+            style={{ borderLeft: '3px solid var(--accent)', cursor: 'pointer' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               {/* Big progress ring — only with a plan */}
               {planProgress !== null && (
@@ -442,12 +479,24 @@ export function WorkoutScreen() {
                 />
               )}
               <div style={{ flex: 1 }}>
-                <span className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>
-                  {activePlan ? activePlan.name : (activeWorkout?.name ?? 'Trening w toku')}
-                </span>
-                <div className="flex gap-3 mt-2">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <span className="text-sm font-bold uppercase tracking-wide" style={{ color: 'var(--accent)' }}>
+                    {activePlan ? activePlan.name : (activeWorkout?.name ?? 'Trening w toku')}
+                  </span>
+                  <ElapsedBadge startTime={activeWorkout.startTime} />
+                </div>
+                <div className="flex gap-3 mt-2 items-center">
                   <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{exerciseCount} ćwiczeń</span>
                   <span className="text-xs font-medium px-2.5 py-1 rounded-lg bg-white/8 text-white/60">{setCount} serii</span>
+                  <span
+                    className="text-xs font-semibold px-2.5 py-1 rounded-lg ml-auto flex items-center gap-1.5"
+                    style={{ background: 'rgba(var(--accent-rgb),0.12)', color: 'var(--accent)' }}
+                  >
+                    <svg viewBox="0 0 24 24" width={12} height={12} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                    </svg>
+                    Edytuj
+                  </span>
                 </div>
               </div>
             </div>
@@ -559,17 +608,8 @@ export function WorkoutScreen() {
               </svg>
               Zmień ćwiczenie
             </button>
-            <button style={{
-              width: 32, height: 32, borderRadius: '50%',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
-              fontSize: 16, color: 'rgba(255,255,255,0.42)',
-            }}>⋯</button>
+            <ElapsedBadge startTime={activeWorkout.startTime} />
           </div>
-
-          <ProfileSwitch compact />
 
           {/* Exercise name + info */}
           {(() => {
@@ -618,6 +658,7 @@ export function WorkoutScreen() {
           <SetLogger
             exerciseId={currentExerciseId}
             onTimerStart={handleTimerStart}
+            onSetSaved={handleSetSaved}
             targetReps={currentExercisePlan?.targetReps}
             targetWeightKg={currentExercisePlan?.targetWeightKg}
             targetSets={currentExercisePlan?.targetSets}
@@ -638,6 +679,21 @@ export function WorkoutScreen() {
             <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M9 6l6 6-6 6"/>
             </svg>
+          </button>
+
+          <button
+            onClick={() => setShowEditor(true)}
+            style={{
+              width: '100%', height: 48, borderRadius: 16,
+              border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',
+              color: 'rgba(255,255,255,0.62)', fontSize: 14, fontWeight: 600,
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            }}
+          >
+            <svg viewBox="0 0 24 24" width={15} height={15} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
+            </svg>
+            Edytuj cały trening
           </button>
 
           <div className="pt-2 space-y-2">

@@ -2,11 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AppSettings, ProfileId } from '../types';
 import { DEFAULT_SETTINGS } from '../constants/profiles';
+import { STORAGE_KEYS } from '../utils/storage';
 
 interface SettingsState extends AppSettings {
   setTimerEnabled: (profileId: ProfileId, enabled: boolean) => void;
   setTimerDuration: (profileId: ProfileId, seconds: number) => void;
-  setTheme: (theme: AppSettings['theme']) => void;
   togglePinnedExercise: (profileId: ProfileId, exerciseId: string) => void;
   isPinned: (profileId: ProfileId, exerciseId: string) => boolean;
 }
@@ -23,7 +23,6 @@ export const useSettingsStore = create<SettingsState>()(
         set(state => ({
           timerDuration: { ...state.timerDuration, [profileId]: seconds },
         })),
-      setTheme: (theme) => set({ theme }),
       togglePinnedExercise: (profileId, exerciseId) =>
         set(state => {
           const current = state.pinnedExercises[profileId] ?? [];
@@ -43,7 +42,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
     }),
     {
-      name: 'gym_settings',
+      name: STORAGE_KEYS.settings,
     },
   ),
 );

@@ -2,7 +2,7 @@ import type { Workout } from '../../types';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { formatDurationMinutes } from '../../utils/dates';
 import { getTotalVolume, getWorkoutDuration } from '../../utils/calculations';
-import { PROFILES } from '../../constants/profiles';
+import { PROFILE } from '../../constants/profiles';
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -25,7 +25,7 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
   const totalVolume = getTotalVolume(workout);
   const duration = getWorkoutDuration(workout);
   const workingSets = workout.sets.filter(s => !s.isWarmup);
-  const profile = PROFILES[workout.profileId];
+  const profile = PROFILE;
 
   // Top 2 exercise names
   const exerciseNames = exerciseIds
@@ -74,24 +74,18 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
         {/* Row 1: exercise names */}
         <div style={{ fontSize: 15, fontWeight: 700, color: '#FAFAFA', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {exerciseNames}
+          {workout.name ?? exerciseNames}
         </div>
         {/* Row 2: stats */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'rgba(255,255,255,0.42)' }}>
-          <span style={{ fontWeight: 600, color: profile.accent }}>{profile.fullName}</span>
-          {duration > 0 && (
-            <>
-              <span>·</span>
-              <span>{formatDurationMinutes(duration)}</span>
-            </>
-          )}
+          {duration > 0 && <span>{formatDurationMinutes(duration)}</span>}
           {totalVolume > 0 && (
             <>
-              <span>·</span>
+              {duration > 0 && <span>·</span>}
               <span>{totalVolume.toLocaleString('pl-PL')} kg</span>
             </>
           )}
-          <span>·</span>
+          {(duration > 0 || totalVolume > 0) && <span>·</span>}
           <span>{workingSets.length} serii</span>
         </div>
         {/* Row 3: top set */}

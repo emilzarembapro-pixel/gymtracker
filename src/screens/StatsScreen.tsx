@@ -1,13 +1,13 @@
 import { useState, useMemo } from 'react';
-import { useProfileStore } from '../stores/profileStore';
 import { useHistoryStore } from '../stores/historyStore';
 import { useExerciseStore } from '../stores/exerciseStore';
 import { ExercisePicker } from '../components/workout/ExercisePicker';
 import { ExerciseChart } from '../components/stats/ExerciseChart';
 import { MetricToggle } from '../components/stats/MetricToggle';
 import { Modal } from '../components/ui/Modal';
-import { ProfileSwitch } from '../components/ui/ProfileSwitch';
-import { calculateStreak, getTotalVolume } from '../utils/calculations';
+import { PROFILE_ID } from '../constants/profiles';
+import { calculateStreak, getTotalVolume, formatSecondsToTime } from '../utils/calculations';
+import { daysAgoISO } from '../utils/dates';
 import type { Exercise, PRType } from '../types';
 
 type Period = '1M' | '3M' | '6M' | '1R' | 'Wsz.';
@@ -21,8 +21,7 @@ const PERIOD_DAYS: Record<Period, number | null> = {
 };
 
 export function StatsScreen() {
-  const activeProfile = useProfileStore(s => s.activeProfile);
-  const getForProfile = useHistoryStore(s => s.getForProfile);
+  const allWorkouts = useHistoryStore(s => s.workouts[PROFILE_ID]);
   const getById = useExerciseStore(s => s.getById);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [metric, setMetric] = useState<PRType>('maxWeight');
@@ -36,24 +35,47 @@ export function StatsScreen() {
     setPickerOpen(false);
   };
 
-  const allWorkouts = useMemo(() => getForProfile(activeProfile), [activeProfile, getForProfile]);
-
   const periodWorkouts = useMemo(() => {
     const days = PERIOD_DAYS[selectedPeriod];
     if (days === null) return allWorkouts;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = daysAgoISO(days);
     return allWorkouts.filter(w => w.date >= cutoffStr);
   }, [allWorkouts, selectedPeriod]);
 
+  // All-time records for the selected exercise
+  const exerciseRecords = useMemo(() => {
+    if (!selectedExerciseId) return null;
+    const trackBy = selectedExercise?.trackBy ?? 'weight-reps';
+    const sets = allWorkouts
+      .flatMap(w => w.sets)
+      .filter(s => s.exerciseId === selectedExerciseId && !s.isWarmup && s.reps > 0);
+    if (sets.length === 0) return null;
+
+    if (trackBy !== 'weight-reps') {
+      const best = Math.max(...sets.map(s => s.reps));
+      return { trackBy, best, maxWeight: 0, repsAtMaxWeight: 0, byWeight: [] as Array<{ weight: number; reps: number }> };
+    }
+
+    const bestRepsPerWeight = new Map<number, number>();
+    for (const set of sets) {
+      const current = bestRepsPerWeight.get(set.weightKg) ?? 0;
+      if (set.reps > current) bestRepsPerWeight.set(set.weightKg, set.reps);
+    }
+    const byWeight = [...bestRepsPerWeight.entries()]
+      .map(([weight, reps]) => ({ weight, reps }))
+      .sort((a, b) => b.weight - a.weight);
+    const maxWeight = byWeight[0]?.weight ?? 0;
+
+    return {
+      trackBy,
+      best: 0,
+      maxWeight,
+      repsAtMaxWeight: byWeight[0]?.reps ?? 0,
+      byWeight: byWeight.slice(0, 5),
+    };
+  }, [selectedExerciseId, selectedExercise, allWorkouts]);
+
   const stats = useMemo(() => {
-    const today = new Date();
-
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
-    const monthWorkouts = allWorkouts.filter(w => w.date >= startOfMonthStr);
-
     const totalSets = periodWorkouts.reduce((sum, w) => sum + w.sets.filter(s => !s.isWarmup).length, 0);
     const totalVolumeKg = periodWorkouts.reduce((sum, w) => sum + getTotalVolume(w), 0);
     const totalTimeMs = periodWorkouts.reduce((sum, w) => {
@@ -96,21 +118,13 @@ export function StatsScreen() {
       .sort((a, b) => b.sets - a.sets)
       .slice(0, 5);
 
-    return { streak, totalSets, totalVolumeKg, totalHours, topExercises, muscleVolume, monthCount: monthWorkouts.length };
+    return { streak, totalSets, totalVolumeKg, totalHours, topExercises, muscleVolume };
   }, [allWorkouts, periodWorkouts, getById]);
 
   const maxMuscleSets = stats.muscleVolume[0]?.sets ?? 1;
 
   return (
     <div style={{ padding: '0 16px 16px' }}>
-      {/* Top header */}
-      <div style={{
-        paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)',
-        marginBottom: 16,
-      }}>
-        <ProfileSwitch />
-      </div>
-
       {/* Title */}
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.42)', marginBottom: 4 }}>
@@ -182,10 +196,68 @@ export function StatsScreen() {
           <div className="h-60 w-full" style={{ marginTop: 8 }}>
             <ExerciseChart
               exerciseId={selectedExerciseId}
-              profileId={activeProfile}
+              profileId={PROFILE_ID}
               metric={metric}
             />
           </div>
+        </div>
+      )}
+
+      {/* Exercise records */}
+      {selectedExerciseId && exerciseRecords && (
+        <div style={{
+          borderRadius: 18, padding: '14px 16px',
+          background: 'var(--surface)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          marginBottom: 20,
+        }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.42)', marginBottom: 14 }}>
+            REKORDY · CAŁY OKRES
+          </div>
+
+          {exerciseRecords.trackBy === 'weight-reps' ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 10 }}>
+                <div style={{ borderRadius: 14, padding: '12px 14px', background: 'var(--surface2)', minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)' }}>MAKS CIĘŻAR</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}>
+                    {exerciseRecords.maxWeight} kg
+                  </div>
+                </div>
+                <div style={{ borderRadius: 14, padding: '12px 14px', background: 'var(--surface2)', minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)' }}>POWT. NA MAKSIE</div>
+                  <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}>
+                    {exerciseRecords.repsAtMaxWeight}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)', margin: '16px 0 8px' }}>
+                MAKS POWTÓRZEŃ DANYM CIĘŻAREM
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {exerciseRecords.byWeight.map(row => (
+                  <div key={row.weight} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '8px 12px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)',
+                  }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#FAFAFA', fontVariantNumeric: 'tabular-nums' }}>{row.weight} kg</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums' }}>{row.reps} powt.</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div style={{ borderRadius: 14, padding: '12px 14px', background: 'var(--surface2)' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(255,255,255,0.42)' }}>
+                {exerciseRecords.trackBy === 'time' ? 'NAJDŁUŻSZA SERIA' : 'MAKS POWTÓRZEŃ'}
+              </div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: 'var(--accent)', fontVariantNumeric: 'tabular-nums', lineHeight: 1.15 }}>
+                {exerciseRecords.trackBy === 'time' ? formatSecondsToTime(exerciseRecords.best) : exerciseRecords.best}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

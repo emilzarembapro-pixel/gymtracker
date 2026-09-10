@@ -4,7 +4,14 @@ import { useExerciseStore } from '../../stores/exerciseStore';
 import { useHistoryStore } from '../../stores/historyStore';
 import { Button } from '../ui/Button';
 import { formatDurationMinutes, formatTime } from '../../utils/dates';
-import { getTotalVolume, getWorkoutDuration } from '../../utils/calculations';
+import { formatSecondsToTime, getTotalVolume, getWorkoutDuration } from '../../utils/calculations';
+import type { ExerciseTrackBy, WorkoutSet } from '../../types';
+
+function formatSet(set: WorkoutSet, trackBy: ExerciseTrackBy): string {
+  if (trackBy === 'time') return formatSecondsToTime(set.reps);
+  if (trackBy === 'reps-only') return `${set.reps} powt.`;
+  return `${set.weightKg} kg × ${set.reps} powt.`;
+}
 
 interface WorkoutDetailProps {
   workout: Workout;
@@ -56,7 +63,10 @@ export function WorkoutDetail({ workout, onDelete }: WorkoutDetailProps) {
       <div className="space-y-4 mb-4">
         {exerciseIds.map(exId => {
           const exercise = getById(exId);
+          const trackBy: ExerciseTrackBy = exercise?.trackBy ?? 'weight-reps';
           const exSets = workout.sets.filter(s => s.exerciseId === exId);
+          let warmupNo = 0;
+          let workingNo = 0;
           return (
             <div key={exId} className="bg-slate-800 rounded-xl overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-700">
@@ -64,11 +74,13 @@ export function WorkoutDetail({ workout, onDelete }: WorkoutDetailProps) {
                 <div className="text-xs text-slate-500">{exercise?.nameEn}</div>
               </div>
               <div className="divide-y divide-slate-700/30">
-                {exSets.map((set, idx) => (
+                {exSets.map(set => (
                   <div key={set.id} className="flex items-center px-4 py-2.5 gap-2">
-                    <span className="text-slate-500 text-xs w-6">S{idx + 1}</span>
+                    <span className="text-slate-500 text-xs w-6">
+                      {set.isWarmup ? `R${++warmupNo}` : `S${++workingNo}`}
+                    </span>
                     <span className={`flex-1 text-sm ${set.isWarmup ? 'text-slate-500' : 'text-slate-200'}`}>
-                      {set.weightKg} kg × {set.reps} powt.
+                      {formatSet(set, trackBy)}
                       {set.isWarmup && <span className="text-slate-600 ml-1">(rozg.)</span>}
                     </span>
                     {set.isPR && <span className="text-yellow-400">★ PR</span>}

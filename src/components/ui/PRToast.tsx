@@ -3,10 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useWorkoutStore } from '../../stores/workoutStore';
 import type { NewPREvent, PRType } from '../../types';
 import { HAPTIC } from '../../utils/haptics';
+import { formatSecondsToTime } from '../../utils/calculations';
 
 function getPriorityPR(events: NewPREvent[]): NewPREvent | null {
   if (events.length === 0) return null;
-  const order: PRType[] = ['1rm', 'maxWeight', 'maxVolume'];
+  const order: PRType[] = ['1rm', 'maxWeight', 'maxVolume', 'maxTime', 'maxReps'];
   for (const type of order) {
     const found = events.find(e => e.type === type);
     if (found) return found;
@@ -22,6 +23,10 @@ function formatPRMessage(event: NewPREvent): string {
       return `${event.exerciseName}: ${event.value} kg`;
     case 'maxVolume':
       return `${event.exerciseName}: ${event.value} kg objętości`;
+    case 'maxReps':
+      return `${event.exerciseName}: ${event.value} powt.`;
+    case 'maxTime':
+      return `${event.exerciseName}: ${formatSecondsToTime(event.value)}`;
     default:
       return event.exerciseName;
   }

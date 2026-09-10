@@ -1,9 +1,8 @@
 import type { ProfileId } from '../types';
 
 export const STORAGE_KEYS = {
-  activeProfile: 'gym_profile',
-  onboardingDone: 'gym_onboarding',
   activeWorkout: 'gym_active_workout',
+  activeSession: 'gym_active_session',
   workouts: (id: ProfileId) => `gym_workouts_${id}`,
   prs: (id: ProfileId) => `gym_prs_${id}`,
   customExercises: 'gym_custom_exercises',

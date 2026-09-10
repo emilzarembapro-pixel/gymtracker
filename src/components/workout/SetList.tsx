@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useWorkoutStore } from '../../stores/workoutStore';
-import type { WorkoutSet } from '../../types';
+import { useExerciseStore } from '../../stores/exerciseStore';
+import { parseTimeToSeconds, formatSecondsToTime } from '../../utils/calculations';
+import type { WorkoutSet, ExerciseTrackBy } from '../../types';
 
 interface SetListProps {
   exerciseId: string;
   sets: WorkoutSet[];
+}
+
+function formatSetValue(set: WorkoutSet, trackBy: ExerciseTrackBy): string {
+  if (trackBy === 'time') return formatSecondsToTime(set.reps);
+  if (trackBy === 'reps-only') return `× ${set.reps}`;
+  return `${set.weightKg} kg × ${set.reps}`;
 }
 
 function PRBadge() {
@@ -29,9 +37,19 @@ function PRBadge() {
   );
 }
 
-function EditModal({ set, onClose, onSave }: { set: WorkoutSet; onClose: () => void; onSave: (w: number, r: number) => void }) {
+function EditModal({ set, trackBy, onClose, onSave }: { set: WorkoutSet; trackBy: ExerciseTrackBy; onClose: () => void; onSave: (w: number, r: number) => void }) {
   const [weight, setWeight] = useState(String(set.weightKg));
   const [reps, setReps] = useState(String(set.reps));
+  const [time, setTime] = useState(formatSecondsToTime(set.reps));
+
+  const labelStyle = { fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)' } as const;
+  const inputStyle = {
+    width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center' as const,
+    background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+    color: '#FAFAFA', fontSize: 22, fontWeight: 800, outline: 'none',
+    caretColor: 'var(--accent)', boxSizing: 'border-box' as const,
+  };
+
   return (
     <div
       style={{
@@ -49,36 +67,30 @@ function EditModal({ set, onClose, onSave }: { set: WorkoutSet; onClose: () => v
         onClick={e => e.stopPropagation()}
       >
         <div style={{ fontSize: 16, fontWeight: 800, color: '#FAFAFA', marginBottom: 16 }}>Edytuj serię</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)' }}>KG</span>
-            <input
-              type="number" inputMode="decimal"
-              value={weight}
-              onChange={e => setWeight(e.target.value)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center',
-                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-                color: '#FAFAFA', fontSize: 22, fontWeight: 800, outline: 'none',
-                caretColor: 'var(--accent)', boxSizing: 'border-box',
-              }}
-            />
+        {trackBy === 'weight-reps' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span style={labelStyle}>KG</span>
+              <input type="number" inputMode="decimal" value={weight} onChange={e => setWeight(e.target.value)} style={inputStyle} />
+            </label>
+            <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+              <span style={labelStyle}>POWT.</span>
+              <input type="number" inputMode="numeric" value={reps} onChange={e => setReps(e.target.value)} style={inputStyle} />
+            </label>
+          </div>
+        )}
+        {trackBy === 'reps-only' && (
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, marginBottom: 16 }}>
+            <span style={labelStyle}>POWT.</span>
+            <input type="number" inputMode="numeric" value={reps} onChange={e => setReps(e.target.value)} style={inputStyle} />
           </label>
-          <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', color: 'var(--accent)' }}>POWT.</span>
-            <input
-              type="number" inputMode="numeric"
-              value={reps}
-              onChange={e => setReps(e.target.value)}
-              style={{
-                width: '100%', padding: '10px', borderRadius: 12, textAlign: 'center',
-                background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
-                color: '#FAFAFA', fontSize: 22, fontWeight: 800, outline: 'none',
-                caretColor: 'var(--accent)', boxSizing: 'border-box',
-              }}
-            />
+        )}
+        {trackBy === 'time' && (
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, marginBottom: 16 }}>
+            <span style={labelStyle}>CZAS (mm:ss)</span>
+            <input type="text" inputMode="numeric" value={time} onChange={e => setTime(e.target.value)} style={inputStyle} />
           </label>
-        </div>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             onClick={onClose}
@@ -90,9 +102,17 @@ function EditModal({ set, onClose, onSave }: { set: WorkoutSet; onClose: () => v
           >Anuluj</button>
           <button
             onClick={() => {
-              const w = parseFloat(weight);
-              const r = parseInt(reps, 10);
-              if (!isNaN(w) && !isNaN(r) && r > 0) onSave(Math.max(0, w), Math.max(1, r));
+              if (trackBy === 'time') {
+                const sec = parseTimeToSeconds(time);
+                if (sec > 0) onSave(0, sec);
+              } else if (trackBy === 'reps-only') {
+                const r = parseInt(reps, 10);
+                if (!isNaN(r) && r > 0) onSave(0, r);
+              } else {
+                const w = parseFloat(weight);
+                const r = parseInt(reps, 10);
+                if (!isNaN(w) && !isNaN(r) && r > 0) onSave(Math.max(0, w), Math.max(1, r));
+              }
               onClose();
             }}
             style={{
@@ -110,12 +130,14 @@ function EditModal({ set, onClose, onSave }: { set: WorkoutSet; onClose: () => v
 function SetRow({
   set,
   label,
+  trackBy,
   isLast,
   onDelete,
   onEdit,
 }: {
   set: WorkoutSet;
   label: string;
+  trackBy: ExerciseTrackBy;
   isLast: boolean;
   onDelete: () => void;
   onEdit: () => void;
@@ -134,7 +156,7 @@ function SetRow({
       <span className="text-white/25 text-sm font-semibold w-7 flex-shrink-0">{label}</span>
       <div className="flex-1">
         <span className={`text-sm font-bold tabular-nums ${set.isWarmup ? 'text-white/35' : 'text-white'}`}>
-          {set.weightKg} kg × {set.reps}
+          {formatSetValue(set, trackBy)}
         </span>
       </div>
       {set.isPR && <PRBadge />}
@@ -164,11 +186,13 @@ function SetRow({
 export function SetList({ exerciseId, sets }: SetListProps) {
   const deleteSet = useWorkoutStore(s => s.deleteSet);
   const updateSet = useWorkoutStore(s => s.updateSet);
+  const getById = useExerciseStore(s => s.getById);
   const [editingSet, setEditingSet] = useState<WorkoutSet | null>(null);
 
   const setsForExercise = sets.filter(s => s.exerciseId === exerciseId);
   const warmupSets = setsForExercise.filter(s => s.isWarmup);
   const workingSets = setsForExercise.filter(s => !s.isWarmup);
+  const trackBy: ExerciseTrackBy = getById(exerciseId)?.trackBy ?? 'weight-reps';
 
   if (setsForExercise.length === 0) return null;
 
@@ -177,6 +201,7 @@ export function SetList({ exerciseId, sets }: SetListProps) {
       {editingSet && (
         <EditModal
           set={editingSet}
+          trackBy={trackBy}
           onClose={() => setEditingSet(null)}
           onSave={(w, r) => updateSet(editingSet.id, { weightKg: w, reps: r })}
         />
@@ -195,6 +220,7 @@ export function SetList({ exerciseId, sets }: SetListProps) {
                   key={set.id}
                   set={set}
                   label={`R${idx + 1}`}
+                  trackBy={trackBy}
                   isLast={idx === warmupSets.length - 1 && workingSets.length === 0}
                   onDelete={() => deleteSet(set.id)}
                   onEdit={() => setEditingSet(set)}
@@ -216,6 +242,7 @@ export function SetList({ exerciseId, sets }: SetListProps) {
                   key={set.id}
                   set={set}
                   label={`S${idx + 1}`}
+                  trackBy={trackBy}
                   isLast={idx === workingSets.length - 1}
                   onDelete={() => deleteSet(set.id)}
                   onEdit={() => setEditingSet(set)}

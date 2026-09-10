@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { Exercise, ExerciseCategory } from '../types';
-import { DEFAULT_EXERCISES } from '../constants/exercises';
+import type { Exercise } from '../types';
+import { DEFAULT_EXERCISES, EXERCISE_ALIASES } from '../constants/exercises';
 import { storageGet, storageSet, STORAGE_KEYS } from '../utils/storage';
 
 interface ExerciseState {
@@ -9,7 +9,6 @@ interface ExerciseState {
   addCustomExercise: (ex: Omit<Exercise, 'id' | 'isCustom'>) => Exercise;
   deleteCustomExercise: (id: string) => void;
   getById: (id: string) => Exercise | undefined;
-  search: (query: string, category?: ExerciseCategory) => Exercise[];
 }
 
 function loadExercises(): Exercise[] {
@@ -45,19 +44,11 @@ export const useExerciseStore = create<ExerciseState>((set, get) => ({
   },
 
   getById: (id) => {
-    return get().exercises.find(e => e.id === id);
-  },
-
-  search: (query, category) => {
     const { exercises } = get();
-    const q = query.toLowerCase().trim();
-    return exercises.filter(e => {
-      const matchesCategory = !category || e.category === category;
-      const matchesQuery =
-        !q ||
-        e.name.toLowerCase().includes(q) ||
-        e.nameEn.toLowerCase().includes(q);
-      return matchesCategory && matchesQuery;
-    });
+    const found = exercises.find(e => e.id === id);
+    if (found) return found;
+    // Sets logged before the exercise was merged into another one
+    const alias = EXERCISE_ALIASES[id];
+    return alias ? exercises.find(e => e.id === alias) : undefined;
   },
 }));

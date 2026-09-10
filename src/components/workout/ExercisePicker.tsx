@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { useProfileStore } from '../../stores/profileStore';
+import { PROFILE_ID } from '../../constants/profiles';
 import type { Exercise, ExerciseCategory } from '../../types';
 import { cn } from '../../utils/cn';
 
@@ -49,7 +49,6 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const toggleExpanded = useCallback((id: string) => setExpandedId(prev => prev === id ? null : id), []);
   const exercises = useExerciseStore(s => s.exercises);
-  const activeProfile = useProfileStore(s => s.activeProfile);
   const { isPinned, togglePinnedExercise } = useSettingsStore();
 
   const filtered = exercises
@@ -60,8 +59,8 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
       return matchCat && matchQ;
     })
     .sort((a, b) => {
-      const aPinned = isPinned(activeProfile, a.id);
-      const bPinned = isPinned(activeProfile, b.id);
+      const aPinned = isPinned(PROFILE_ID, a.id);
+      const bPinned = isPinned(PROFILE_ID, b.id);
       if (aPinned && !bPinned) return -1;
       if (!aPinned && bPinned) return 1;
       return a.nameEn.localeCompare(b.nameEn, 'en');
@@ -121,7 +120,7 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
           <p className="text-center text-white/30 py-10 text-sm">Brak ćwiczeń</p>
         )}
         {filtered.map(exercise => {
-          const pinned = isPinned(activeProfile, exercise.id);
+          const pinned = isPinned(PROFILE_ID, exercise.id);
           const isExpanded = expandedId === exercise.id;
           return (
             <div
@@ -152,7 +151,7 @@ export function ExercisePicker({ onSelect }: ExercisePickerProps) {
                   </button>
                 )}
                 <button
-                  onClick={e => { e.stopPropagation(); togglePinnedExercise(activeProfile, exercise.id); }}
+                  onClick={e => { e.stopPropagation(); togglePinnedExercise(PROFILE_ID, exercise.id); }}
                   className={cn('p-2 rounded-xl transition-colors flex-shrink-0', pinned ? 'text-[var(--accent)]' : 'text-white/25 hover:text-white/50')}
                   title={pinned ? 'Odepnij' : 'Przypnij'}
                 >

@@ -17,8 +17,10 @@ export function usePRCheck() {
     if (!activeWorkout || set.isWarmup) return [];
     const { profileId, id: workoutId } = activeWorkout;
     const existingPRs = getForExercise(set.exerciseId, profileId);
-    const exerciseName = exercises.find(e => e.id === set.exerciseId)?.name ?? '';
-    const events = checkNewPRs(set, existingPRs, workoutId, profileId, todayISO());
+    const exercise = exercises.find(e => e.id === set.exerciseId);
+    const exerciseName = exercise?.name ?? '';
+    const trackBy = exercise?.trackBy ?? 'weight-reps';
+    const events = checkNewPRs(set, existingPRs, workoutId, profileId, todayISO(), trackBy);
     const namedEvents = events.map(e => ({ ...e, exerciseName }));
     if (namedEvents.length > 0) {
       markSetAsPR(set.id);

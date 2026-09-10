@@ -3,15 +3,19 @@ import { useHistoryStore } from '../../stores/historyStore';
 import { usePRStore } from '../../stores/prStore';
 import { useExerciseStore } from '../../stores/exerciseStore';
 import { useSettingsStore } from '../../stores/settingsStore';
+import { usePlanStore } from '../../stores/planStore';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { todayISO } from '../../utils/dates';
+import { PROFILE_ID } from '../../constants/profiles';
+import { storageSet, storageRemove, STORAGE_KEYS } from '../../utils/storage';
 
 interface BackupData {
   version: 1;
   exportedAt: string;
-  workouts: { emil: unknown[]; nikola: unknown[] };
-  prs: { emil: unknown[]; nikola: unknown[] };
+  workouts: { emil: unknown[] };
+  prs: { emil: unknown[] };
+  plans?: { emil: unknown[] };
   customExercises: unknown[];
   settings: unknown;
 }
@@ -27,10 +31,13 @@ function estimateStorageKB(): number {
 }
 
 export function ExportImport() {
-  const historyStore = useHistoryStore();
-  const prStore = usePRStore();
-  const exerciseStore = useExerciseStore();
-  const settings = useSettingsStore();
+  const workouts = useHistoryStore(s => s.workouts[PROFILE_ID]);
+  const prs = usePRStore(s => s.prs[PROFILE_ID]);
+  const plans = usePlanStore(s => s.plans[PROFILE_ID]);
+  const exercises = useExerciseStore(s => s.exercises);
+  const timerEnabled = useSettingsStore(s => s.timerEnabled);
+  const timerDuration = useSettingsStore(s => s.timerDuration);
+  const pinnedExercises = useSettingsStore(s => s.pinnedExercises);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importModal, setImportModal] = useState(false);
@@ -42,21 +49,11 @@ export function ExportImport() {
     const data: BackupData = {
       version: 1,
       exportedAt: new Date().toISOString(),
-      workouts: {
-        emil: historyStore.getForProfile('emil'),
-        nikola: historyStore.getForProfile('nikola'),
-      },
-      prs: {
-        emil: prStore.getAllForProfile('emil'),
-        nikola: prStore.getAllForProfile('nikola'),
-      },
-      customExercises: exerciseStore.exercises.filter(e => e.isCustom),
-      settings: {
-        timerEnabled: settings.timerEnabled,
-        timerDuration: settings.timerDuration,
-        theme: settings.theme,
-        pinnedExercises: settings.pinnedExercises,
-      },
+      workouts: { emil: workouts },
+      prs: { emil: prs },
+      plans: { emil: plans },
+      customExercises: exercises.filter(e => e.isCustom),
+      settings: { timerEnabled, timerDuration, pinnedExercises },
     };
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -93,15 +90,17 @@ export function ExportImport() {
 
   const handleImportConfirm = () => {
     if (!importData) return;
-    // Write to localStorage directly
-    localStorage.setItem('gym_workouts_emil', JSON.stringify(importData.workouts.emil));
-    localStorage.setItem('gym_workouts_nikola', JSON.stringify(importData.workouts.nikola));
-    localStorage.setItem('gym_prs_emil', JSON.stringify(importData.prs.emil));
-    localStorage.setItem('gym_prs_nikola', JSON.stringify(importData.prs.nikola));
-    localStorage.setItem('gym_custom_exercises', JSON.stringify(importData.customExercises));
-    localStorage.setItem('gym_settings', JSON.stringify(importData.settings));
+    // Written straight to localStorage — the stores read it on the reload below
+    storageSet(STORAGE_KEYS.workouts(PROFILE_ID), importData.workouts.emil ?? []);
+    storageSet(STORAGE_KEYS.prs(PROFILE_ID), importData.prs.emil ?? []);
+    storageSet(STORAGE_KEYS.plans(PROFILE_ID), importData.plans?.emil ?? []);
+    storageSet(STORAGE_KEYS.customExercises, importData.customExercises ?? []);
+    // zustand/persist expects its own envelope — a bare object would not rehydrate
+    storageSet(STORAGE_KEYS.settings, { state: importData.settings, version: 0 });
+    // A restored backup has nothing to do with the session in progress
+    storageRemove(STORAGE_KEYS.activeWorkout);
+    storageRemove(STORAGE_KEYS.activeSession);
     setImportModal(false);
-    // Reload to apply
     window.location.reload();
   };
 
@@ -150,12 +149,12 @@ export function ExportImport() {
             <p className="text-slate-300 text-sm">Plik zawiera:</p>
             <div className="bg-slate-800 rounded-xl p-3 space-y-1 text-sm">
               <div className="flex justify-between">
-                <span className="text-slate-400">Treningi Emil</span>
-                <span className="text-slate-200">{(importData.workouts.emil as unknown[]).length}</span>
+                <span className="text-slate-400">Treningi</span>
+                <span className="text-slate-200">{((importData.workouts.emil ?? []) as unknown[]).length}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Treningi Nikola</span>
-                <span className="text-slate-200">{(importData.workouts.nikola as unknown[]).length}</span>
+                <span className="text-slate-400">Plany</span>
+                <span className="text-slate-200">{((importData.plans?.emil ?? []) as unknown[]).length}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Własne ćwiczenia</span>

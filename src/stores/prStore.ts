@@ -12,7 +12,6 @@ interface PRState {
 function loadPRs(): Record<ProfileId, PersonalRecord[]> {
   return {
     emil: storageGet<PersonalRecord[]>(STORAGE_KEYS.prs('emil'), []),
-    nikola: storageGet<PersonalRecord[]>(STORAGE_KEYS.prs('nikola'), []),
   };
 }
 

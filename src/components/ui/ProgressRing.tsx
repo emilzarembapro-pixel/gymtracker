@@ -20,12 +20,13 @@ export function ProgressRing({ value, size, stroke, label }: ProgressRingProps) 
   const [bounce, setBounce] = useState(false);
 
   useEffect(() => {
-    if (clamped >= 1 && prevRef.current < 1 && !prefersReducedMotion) {
+    const justCompleted = clamped >= 1 && prevRef.current < 1;
+    prevRef.current = clamped;
+    if (justCompleted && !prefersReducedMotion) {
       setBounce(true);
       const t = setTimeout(() => setBounce(false), 600);
       return () => clearTimeout(t);
     }
-    prevRef.current = clamped;
   }, [clamped, prefersReducedMotion]);
 
   const cx = size / 2;

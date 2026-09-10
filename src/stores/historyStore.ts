@@ -14,7 +14,6 @@ interface HistoryState {
 function loadWorkouts(): Record<ProfileId, Workout[]> {
   return {
     emil: storageGet<Workout[]>(STORAGE_KEYS.workouts('emil'), []),
-    nikola: storageGet<Workout[]>(STORAGE_KEYS.workouts('nikola'), []),
   };
 }
 

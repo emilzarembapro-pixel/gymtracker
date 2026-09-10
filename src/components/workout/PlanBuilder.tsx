@@ -250,7 +250,7 @@ export function PlanBuilder({ onClose, onSave }: PlanBuilderProps) {
                               value={pe.targetWeightKg ?? ''}
                               onChange={e => {
                                 const v = parseFloat(e.target.value);
-                                updateField(pe.exerciseId, 'targetWeightKg', isNaN(v) ? 0 : v);
+                                updateField(pe.exerciseId, 'targetWeightKg', isNaN(v) ? undefined : Math.max(0, v));
                               }}
                               style={{
                                 width: '100%', padding: '8px 10px', borderRadius: 10,

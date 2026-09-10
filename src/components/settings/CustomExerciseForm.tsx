@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useExerciseStore } from '../../stores/exerciseStore';
-import { useProfileStore } from '../../stores/profileStore';
-import type { ExerciseCategory, ExerciseEquipment } from '../../types';
+import type { ExerciseCategory, ExerciseEquipment, ExerciseTrackBy } from '../../types';
 import { Button } from '../ui/Button';
 
 const CATEGORIES: Array<{ id: ExerciseCategory; label: string }> = [
@@ -22,20 +21,24 @@ const EQUIPMENT: Array<{ id: ExerciseEquipment; label: string }> = [
   { id: 'wolny', label: 'Bez sprzętu (BW)' },
 ];
 
+const TRACK_BY: Array<{ id: ExerciseTrackBy; label: string }> = [
+  { id: 'weight-reps', label: 'Ciężar × powtórzenia' },
+  { id: 'reps-only', label: 'Same powtórzenia (masa własna)' },
+  { id: 'time', label: 'Czas (plank, cardio)' },
+];
+
 interface CustomExerciseFormProps {
   onCreated?: () => void;
 }
 
 export function CustomExerciseForm({ onCreated }: CustomExerciseFormProps) {
   const addCustomExercise = useExerciseStore(s => s.addCustomExercise);
-  const activeProfile = useProfileStore(s => s.activeProfile);
   const [name, setName] = useState('');
   const [nameEn, setNameEn] = useState('');
   const [category, setCategory] = useState<ExerciseCategory>('klatka');
   const [equipment, setEquipment] = useState<ExerciseEquipment>('hantle');
-  const [onlyMe, setOnlyMe] = useState(false);
+  const [trackBy, setTrackBy] = useState<ExerciseTrackBy>('weight-reps');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,14 +51,11 @@ export function CustomExerciseForm({ onCreated }: CustomExerciseFormProps) {
       nameEn: nameEn.trim(),
       category,
       equipment,
-      ownerId: onlyMe ? activeProfile : undefined,
+      trackBy,
     });
 
     setName('');
     setNameEn('');
-    setOnlyMe(false);
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 2000);
     onCreated?.();
   };
 
@@ -111,18 +111,20 @@ export function CustomExerciseForm({ onCreated }: CustomExerciseFormProps) {
         </div>
       </div>
 
-      <label className="flex items-center gap-2 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={onlyMe}
-          onChange={e => setOnlyMe(e.target.checked)}
-          className="w-4 h-4 rounded"
-        />
-        <span className="text-sm text-slate-400">Tylko dla mnie</span>
-      </label>
+      <div>
+        <label className="block text-xs text-slate-400 mb-1">Sposób zapisu</label>
+        <select
+          value={trackBy}
+          onChange={e => setTrackBy(e.target.value as ExerciseTrackBy)}
+          className="w-full bg-slate-800 text-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 ring-[var(--accent)]"
+        >
+          {TRACK_BY.map(t => (
+            <option key={t.id} value={t.id}>{t.label}</option>
+          ))}
+        </select>
+      </div>
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
-      {success && <p className="text-green-400 text-sm">✓ Ćwiczenie dodane!</p>}
 
       <Button type="submit" variant="primary" fullWidth>
         Dodaj ćwiczenie

@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useHistoryStore } from '../stores/historyStore';
-import { useProfileStore } from '../stores/profileStore';
 import { WorkoutCard } from '../components/history/WorkoutCard';
 import { WorkoutDetail } from '../components/history/WorkoutDetail';
 import { Modal } from '../components/ui/Modal';
 import { EmptyState } from '../components/ui/EmptyState';
-import { ProfileSwitch } from '../components/ui/ProfileSwitch';
-import { PROFILES } from '../constants/profiles';
+import { PROFILE_ID } from '../constants/profiles';
 import { calculateStreak } from '../utils/calculations';
+import { toDateStr } from '../utils/dates';
 import type { Workout } from '../types';
 
 const WEEKDAYS = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
@@ -26,42 +25,21 @@ function ClipboardIcon() {
   );
 }
 
-function toDateStr(date: Date): string {
-  return date.toISOString().split('T')[0];
-}
-
 export function HistoryScreen() {
-  const activeProfile = useProfileStore(s => s.activeProfile);
-  const getForProfile = useHistoryStore(s => s.getForProfile);
+  const profileWorkouts = useHistoryStore(s => s.workouts[PROFILE_ID]);
   const deleteWorkout = useHistoryStore(s => s.deleteWorkout);
   const [selectedWorkout, setSelectedWorkout] = useState<Workout | null>(null);
-  const [filter, setFilter] = useState<'all' | 'emil' | 'nikola'>('all');
 
   const today = new Date();
   const [viewYear, setViewYear] = useState(today.getFullYear());
   const [viewMonth, setViewMonth] = useState(today.getMonth());
 
-  const emilWorkouts = useMemo(
-    () => [...getForProfile('emil')].sort((a, b) => b.startTime - a.startTime),
-    [getForProfile],
-  );
-  const nikolaWorkouts = useMemo(
-    () => [...getForProfile('nikola')].sort((a, b) => b.startTime - a.startTime),
-    [getForProfile],
+  const allWorkouts = useMemo(
+    () => [...profileWorkouts].sort((a, b) => b.startTime - a.startTime),
+    [profileWorkouts],
   );
 
-  const filteredWorkouts = useMemo(() => {
-    if (filter === 'emil') return emilWorkouts;
-    if (filter === 'nikola') return nikolaWorkouts;
-    return [...emilWorkouts, ...nikolaWorkouts].sort((a, b) => b.startTime - a.startTime);
-  }, [filter, emilWorkouts, nikolaWorkouts]);
-
-  const streak = useMemo(() => {
-    const allWorkouts = filter === 'emil' ? emilWorkouts
-      : filter === 'nikola' ? nikolaWorkouts
-      : [...emilWorkouts, ...nikolaWorkouts].sort((a, b) => b.startTime - a.startTime);
-    return calculateStreak(allWorkouts);
-  }, [filter, emilWorkouts, nikolaWorkouts]);
+  const streak = useMemo(() => calculateStreak(allWorkouts), [allWorkouts]);
 
   // Build calendar for viewYear/viewMonth
   const calendarDays = useMemo(() => {
@@ -69,32 +47,31 @@ export function HistoryScreen() {
     const lastDay = new Date(viewYear, viewMonth + 1, 0);
     // Day of week for first day (0=Sun → convert to Mon-based 0=Mon)
     const startDow = (firstDay.getDay() + 6) % 7;
-    const days: Array<{ date: string | null; hasEmil: boolean; hasNikola: boolean }> = [];
+    const days: Array<{ date: string | null; hasWorkout: boolean }> = [];
     // Leading empty cells
-    for (let i = 0; i < startDow; i++) days.push({ date: null, hasEmil: false, hasNikola: false });
+    for (let i = 0; i < startDow; i++) days.push({ date: null, hasWorkout: false });
     // Actual days
     for (let d = 1; d <= lastDay.getDate(); d++) {
       const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       days.push({
         date: dateStr,
-        hasEmil: emilWorkouts.some(w => w.date === dateStr),
-        hasNikola: nikolaWorkouts.some(w => w.date === dateStr),
+        hasWorkout: allWorkouts.some(w => w.date === dateStr),
       });
     }
     return days;
-  }, [viewYear, viewMonth, emilWorkouts, nikolaWorkouts]);
+  }, [viewYear, viewMonth, allWorkouts]);
 
   // Workouts for selected month
   const monthWorkouts = useMemo(() => {
     const prefix = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}`;
-    return filteredWorkouts.filter(w => w.date.startsWith(prefix));
-  }, [filteredWorkouts, viewYear, viewMonth]);
+    return allWorkouts.filter(w => w.date.startsWith(prefix));
+  }, [allWorkouts, viewYear, viewMonth]);
 
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const dayWorkouts = useMemo(() => {
     if (!selectedDay) return [];
-    return filteredWorkouts.filter(w => w.date === selectedDay);
-  }, [selectedDay, filteredWorkouts]);
+    return allWorkouts.filter(w => w.date === selectedDay);
+  }, [selectedDay, allWorkouts]);
 
   const prevMonth = () => {
     if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
@@ -112,8 +89,6 @@ export function HistoryScreen() {
     setSelectedWorkout(null);
   };
 
-  void activeProfile;
-
   const todayStr = toDateStr(today);
   const isCurrentMonth = viewYear === today.getFullYear() && viewMonth === today.getMonth();
   const isFutureMonth = new Date(viewYear, viewMonth, 1) > new Date(today.getFullYear(), today.getMonth(), 1);
@@ -126,7 +101,6 @@ export function HistoryScreen() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 16,
       }}>
-        <ProfileSwitch />
         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
           {streak > 0 ? `${streak} dni z rzędu` : ''}
         </span>
@@ -140,26 +114,6 @@ export function HistoryScreen() {
         <h1 style={{ fontSize: 28, fontWeight: 900, color: '#FAFAFA', letterSpacing: '-0.02em' }}>
           Treningi
         </h1>
-      </div>
-
-      {/* Filter chips */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {(['all', 'emil', 'nikola'] as const).map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-              padding: '7px 16px', borderRadius: 999,
-              background: filter === f ? 'var(--surface3)' : 'transparent',
-              border: `1px solid ${filter === f ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
-              color: filter === f ? '#FAFAFA' : 'rgba(255,255,255,0.42)',
-              fontSize: 13, fontWeight: 600, cursor: 'pointer',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {f === 'all' ? 'Wszyscy' : PROFILES[f].fullName}
-          </button>
-        ))}
       </div>
 
       {/* Monthly calendar card */}
@@ -200,11 +154,6 @@ export function HistoryScreen() {
             }
             const isToday = day.date === todayStr;
             const isSelected = day.date === selectedDay;
-            const hasAny = (filter === 'all' && (day.hasEmil || day.hasNikola))
-              || (filter === 'emil' && day.hasEmil)
-              || (filter === 'nikola' && day.hasNikola);
-            const showEmil = (filter === 'all' || filter === 'emil') && day.hasEmil;
-            const showNikola = (filter === 'all' || filter === 'nikola') && day.hasNikola;
             const dayNum = parseInt(day.date.split('-')[2], 10);
 
             return (
@@ -229,15 +178,8 @@ export function HistoryScreen() {
                   color: isSelected ? 'var(--accent)' : isToday ? 'var(--accent)' : 'rgba(255,255,255,0.75)',
                   lineHeight: 1,
                 }}>{dayNum}</span>
-                {hasAny && (
-                  <div style={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-                    {showEmil && (
-                      <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(59,130,246,0.85)' }} />
-                    )}
-                    {showNikola && (
-                      <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'rgba(244,63,94,0.85)' }} />
-                    )}
-                  </div>
+                {day.hasWorkout && (
+                  <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
                 )}
               </button>
             );
@@ -246,18 +188,6 @@ export function HistoryScreen() {
 
         {/* Legend */}
         <div style={{ display: 'flex', gap: 12, marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-          {(filter === 'all' || filter === 'emil') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(59,130,246,0.85)' }} />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)' }}>{PROFILES.emil.fullName}</span>
-            </div>
-          )}
-          {(filter === 'all' || filter === 'nikola') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(244,63,94,0.85)' }} />
-              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.42)' }}>{PROFILES.nikola.fullName}</span>
-            </div>
-          )}
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' }}>
             {monthWorkouts.length} {monthWorkouts.length === 1 ? 'trening' : monthWorkouts.length < 5 ? 'treningi' : 'treningów'} w miesiącu
           </span>

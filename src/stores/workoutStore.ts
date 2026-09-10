@@ -15,12 +15,18 @@ interface WorkoutState {
   selectExercise: (exerciseId: string) => void;
   addSet: (setData: Omit<WorkoutSet, 'id' | 'timestamp' | 'isPR'>) => WorkoutSet;
   markSetAsPR: (setId: string) => void;
+  renameWorkout: (name: string) => void;
   updateSet: (setId: string, patch: Partial<WorkoutSet>) => void;
   deleteSet: (setId: string) => void;
   finishWorkout: (notes?: string) => Workout;
   setLastPREvents: (events: NewPREvent[]) => void;
   clearPREvents: () => void;
   cancelWorkout: () => void;
+}
+
+interface ActiveSession {
+  currentExerciseId: string | null;
+  activePlanId: string | null;
 }
 
 function persistActive(workout: Workout | null) {
@@ -31,13 +37,25 @@ function persistActive(workout: Workout | null) {
   }
 }
 
+/** Keeps the picked exercise and the running plan across a page refresh. */
+function persistSession(session: ActiveSession | null) {
+  if (session) {
+    storageSet(STORAGE_KEYS.activeSession, session);
+  } else {
+    storageRemove(STORAGE_KEYS.activeSession);
+  }
+}
+
 const savedActive = storageGet<Workout | null>(STORAGE_KEYS.activeWorkout, null);
+const savedSession = savedActive
+  ? storageGet<ActiveSession>(STORAGE_KEYS.activeSession, { currentExerciseId: null, activePlanId: null })
+  : { currentExerciseId: null, activePlanId: null };
 
 export const useWorkoutStore = create<WorkoutState>((set, get) => ({
   activeWorkout: savedActive,
-  currentExerciseId: null,
+  currentExerciseId: savedSession.currentExerciseId,
   lastPREvents: [],
-  activePlanId: null,
+  activePlanId: savedSession.activePlanId,
 
   startWorkout: (profileId, name) => {
     const workout: Workout = {
@@ -49,13 +67,18 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       sets: [],
     };
     persistActive(workout);
+    persistSession({ currentExerciseId: null, activePlanId: null });
     set({ activeWorkout: workout, currentExerciseId: null, activePlanId: null });
     return workout;
   },
 
-  setActivePlan: (planId) => set({ activePlanId: planId }),
+  setActivePlan: (planId) => {
+    persistSession({ currentExerciseId: get().currentExerciseId, activePlanId: planId });
+    set({ activePlanId: planId });
+  },
 
   selectExercise: (exerciseId) => {
+    persistSession({ currentExerciseId: exerciseId, activePlanId: get().activePlanId });
     set({ currentExerciseId: exerciseId });
   },
 
@@ -88,6 +111,17 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
         s.id === setId ? { ...s, isPR: true } : s,
       ),
     };
+    persistActive(updated);
+    set({ activeWorkout: updated });
+  },
+
+  renameWorkout: (name) => {
+    const { activeWorkout } = get();
+    if (!activeWorkout) return;
+    const trimmed = name.trim();
+    const updated: Workout = { ...activeWorkout };
+    if (trimmed) updated.name = trimmed;
+    else delete updated.name;
     persistActive(updated);
     set({ activeWorkout: updated });
   },
@@ -125,7 +159,8 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
       notes,
     };
     storageRemove(STORAGE_KEYS.activeWorkout);
-    set({ activeWorkout: null, currentExerciseId: null });
+    persistSession(null);
+    set({ activeWorkout: null, currentExerciseId: null, activePlanId: null });
     return finished;
   },
 
@@ -139,6 +174,7 @@ export const useWorkoutStore = create<WorkoutState>((set, get) => ({
 
   cancelWorkout: () => {
     storageRemove(STORAGE_KEYS.activeWorkout);
-    set({ activeWorkout: null, currentExerciseId: null });
+    persistSession(null);
+    set({ activeWorkout: null, currentExerciseId: null, activePlanId: null });
   },
 }));
